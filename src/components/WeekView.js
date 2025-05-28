@@ -1,134 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Modal from './common/Modal';
 import ShiftAssignmentForm from './shifts/ShiftAssignmentForm';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { 
+  organizeOverlappingShifts, 
+  getTimeInMinutes, 
+  calculateShiftPosition,
+  checkEmployeeAvailability,
+  checkDuplicateShifts,
+  getDateFromWeek,
+  getCurrentWeek,
+  isCurrentDay
+} from '../utils/shiftUtils';
 
-// Hilfsfunktion zur Umrechnung der Zeit in Minuten
-const getTimeInMinutes = (timeString) => {
-  if (!timeString || typeof timeString !== 'string') return 0;
-  const [hours, minutes] = timeString.split(':').map(Number);
-  return hours * 60 + minutes;
-};
+// Memoized Shift Card Component
+const ShiftCard = memo(({ 
+  shift, 
+      shiftType,
+  employees, 
+  isSelected, 
+  isEditable, 
+  onShiftClick, 
+  style 
+}) => {
+  const isCustom = shift.isCustom;
+  const isAbsence = isCustom && (shift.type === 'vacation' || shift.type === 'sick');
+  const cardClassName = `shift-card ${isCustom ? `custom-entry shift-${shift.type}` : `shift-${shiftType?.color || 'gray'}`} ${isAbsence ? 'absence-entry' : ''} ${isSelected ? 'selected' : ''}`;
 
-// Hilfsfunktion zur Berechnung der Position einer Schicht
-const calculateShiftPosition = (shift, shiftTypes) => {
-  const timelineStart = getTimeInMinutes('7:00'); // Startzeit der Timeline
-  let startMinutes, endMinutes;
-
-  if (shift.isCustom) {
-    startMinutes = getTimeInMinutes(shift.customStartTime);
-    endMinutes = getTimeInMinutes(shift.customEndTime);
-  } else {
-    const shiftType = shiftTypes.find(t => t.id === shift.shiftTypeId);
-    if (!shiftType) return null;
-    startMinutes = getTimeInMinutes(shiftType.startTime);
-    endMinutes = getTimeInMinutes(shiftType.endTime);
-  }
-
-  // Behandle Schichten über Mitternacht
-  if (endMinutes < startMinutes) {
-    endMinutes += 24 * 60;
-  }
-
-  const top = ((startMinutes - timelineStart) / 60) * 60; // 60px pro Stunde
-  const height = ((endMinutes - startMinutes) / 60) * 60;
-
-  return { top, height };
-};
-
-// Hilfsfunktion für die Berechnung von Schichtüberlappungen
-const organizeOverlappingShifts = (shifts, shiftTypes) => {
-  if (!shifts || shifts.length === 0) return [];
-
-  // Berechne Start- und Endzeiten für alle Schichten
-  const shiftsWithTimes = shifts.map(shift => {
-    let startMinutes, endMinutes;
+  // Hilfsfunktion zum Formatieren der Mitarbeiternamen
+  const getEmployeeNames = () => {
+    if (!isCustom || !shift.customEmployeeIds) return shift.name;
     
-    if (shift.isCustom) {
-      startMinutes = getTimeInMinutes(shift.customStartTime);
-      endMinutes = getTimeInMinutes(shift.customEndTime);
-    } else {
-      const shiftType = shiftTypes.find(t => t.id === shift.shiftTypeId);
-      if (!shiftType) return null;
-      startMinutes = getTimeInMinutes(shiftType.startTime);
-      endMinutes = getTimeInMinutes(shiftType.endTime);
-    }
-    
-    // Behandle Schichten über Mitternacht
-    if (endMinutes < startMinutes) {
-      endMinutes += 24 * 60;
-    }
+    return shift.customEmployeeIds
+      .map(empId => {
+        const employee = employees.find(e => e.id === parseInt(empId));
+        return employee ? employee.name : '';
+      })
+      .filter(name => name)
+      .join(', ');
+  };
 
-    const position = calculateShiftPosition(shift, shiftTypes);
-    if (!position) return null;
-    
-    return {
-      ...shift,
-      startMinutes,
-      endMinutes,
-      top: position.top,
-      height: position.height,
-      column: 0
-    };
-  }).filter(Boolean);
-  
-  // Sortiere nach Startzeit
-  shiftsWithTimes.sort((a, b) => a.startMinutes - b.startMinutes);
-  
-  // Finde überlappende Schichten und weise Spalten zu
-  let maxColumn = 0;
-  
-  shiftsWithTimes.forEach((shift, i) => {
-    shift.column = 0;
-    
-    // Prüfe Überlappungen mit vorherigen Schichten
-    for (let j = 0; j < i; j++) {
-      const otherShift = shiftsWithTimes[j];
-      
-      // Wenn Überlappung, erhöhe die Spalte
-      if (shift.startMinutes < otherShift.endMinutes) {
-        if (shift.column <= otherShift.column) {
-          shift.column = otherShift.column + 1;
-        }
-      }
-    }
-    
-    maxColumn = Math.max(maxColumn, shift.column);
-  });
+  return (
+    <div
+      className={cardClassName}
+      style={style}
+      onClick={isEditable ? onShiftClick : undefined}
+    >
+      <div className="shift-header">
+        {isAbsence ? (
+          <div className="absence-header">
+            <span className="absence-type">
+              {shift.type === 'vacation' ? (
+                <>
+                  <span className="absence-icon">🏖️</span>
+                  <span className="absence-employee-name">{getEmployeeNames()} - Urlaub</span>
+                </>
+              ) : (
+                <>
+                  <span className="absence-icon">🤒</span>
+                  <span className="absence-employee-name">{getEmployeeNames()} - Krank</span>
+                </>
+              )}
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="shift-type">
+              {isCustom ? shift.customTitle : shiftType?.name}
+            </div>
+            <div className="shift-employee">
+              {getEmployeeNames()}
+            </div>
+            {shift.notes && (
+              <div className="shift-notes">{shift.notes}</div>
+            )}
+          </>
+        )}
+      </div>
+      {isSelected && isEditable && (
+        <div className="shift-selected-indicator" />
+      )}
+    </div>
+  );
+});
 
-  // Berechne die endgültigen Positionen
-  shiftsWithTimes.forEach(shift => {
-    const columnWidth = 100 / (maxColumn + 1);
-    shift.width = `${columnWidth}%`;
-    shift.left = `${shift.column * columnWidth}%`;
-  });
-  
-  return shiftsWithTimes;
-};
-
-// Hilfsfunktion zum Extrahieren des Datums aus der Kalenderwoche
-const getDateFromWeek = (weekString, dayIndex) => {
-  // Extrahiere das Startdatum aus dem weekString (z.B. "KW 21 (19.05 - 25.05.2025)")
-  const match = weekString.match(/\((\d{2}\.\d{2})\s*-\s*\d{2}\.\d{2}\.(\d{4})\)/);
-  if (!match) return '';
-
-  const [startDay, startMonth] = match[1].split('.').map(Number);
-  const year = match[2];
-
-  // Erstelle das Datum für den ersten Tag der Woche
-  const date = new Date(year, startMonth - 1, startDay);
-  
-  // Addiere die Tage entsprechend dem Index
-  date.setDate(date.getDate() + dayIndex);
-
-  // Formatiere das Datum
-  return date.toLocaleDateString('de-DE', { 
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-};
+// Memoized Schedule Cell Component
+const ScheduleCell = memo(({ 
+  day, 
+  time, 
+  isFirstRow, 
+  shifts, 
+  shiftTypes, 
+  employees, 
+  selectedShiftId,
+  isEditable,
+  onShiftClick,
+  onAddClick,
+  isFullWidth
+}) => {
+  return (
+    <td className={`schedule-cell ${isFullWidth ? 'full-width' : ''}`}>
+      {isFirstRow && shifts && (
+        <div className="day-container">
+          {shifts.map(shift => {
+            const shiftType = !shift.isCustom ? shiftTypes.find(t => t.id === shift.shiftTypeId) : null;
+            return (
+              <ShiftCard
+                key={shift.id}
+                shift={shift}
+                shiftType={shiftType}
+                employees={employees}
+                isSelected={selectedShiftId === shift.id}
+                isEditable={isEditable}
+                onShiftClick={() => onShiftClick(shift, day, time)}
+                style={{
+                  position: 'absolute',
+                  top: `${shift.top}px`,
+                  height: `${shift.height}px`,
+                  width: shift.width,
+                  left: shift.left
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+      {isEditable && (
+        <button 
+          className="add-shift-button" 
+          onClick={() => onAddClick(day, time)}
+        >+</button>
+      )}
+    </td>
+  );
+});
 
 function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEditable = false }) {
   const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
@@ -355,12 +361,25 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     'KW 52 (25.12 - 31.12.2028)'
   ]);
   
-  const [selectedWeek, setSelectedWeek] = useState('KW 21 (19.05 - 25.05.2025)');
+  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
   const [modalOpen, setModalOpen] = useState(false);
   const [currentShift, setCurrentShift] = useState(null);
   const [modalData, setModalData] = useState({ day: '', time: '' });
   const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedDay, setSelectedDay] = useState('');
   const [selectedShiftId, setSelectedShiftId] = useState(null);
+
+  // Effekt zum Aktualisieren der ausgewählten Woche, wenn sich das Datum ändert
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentWeek = getCurrentWeek();
+      if (currentWeek !== selectedWeek) {
+        setSelectedWeek(currentWeek);
+      }
+    }, 60000); // Prüfe jede Minute
+
+    return () => clearInterval(interval);
+  }, [selectedWeek]);
 
   // Füge einen Click-Handler zum Hintergrund hinzu
   useEffect(() => {
@@ -382,97 +401,59 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     };
   }, []);
 
-  // Hilfsfunktion zur Prüfung von Schichtüberlappungen für einen Mitarbeiter
-  const checkEmployeeAvailability = (employeeId, newShift, currentShiftId = null) => {
-    if (!scheduleData[selectedWeek]?.[modalData.day]) return { available: true };
-    
-    // Startzeit und Endzeit der neuen Schicht
-    let newStartMinutes, newEndMinutes;
-    
-    if (newShift.isCustom) {
-      if (!newShift.customStartTime || !newShift.customEndTime) return { available: true };
-      newStartMinutes = getTimeInMinutes(newShift.customStartTime);
-      newEndMinutes = getTimeInMinutes(newShift.customEndTime);
-    } else {
-      const shiftType = shiftTypes.find(t => t.id === newShift.shiftTypeId);
-      if (!shiftType?.startTime || !shiftType?.endTime) return { available: true };
-      newStartMinutes = getTimeInMinutes(shiftType.startTime);
-      newEndMinutes = getTimeInMinutes(shiftType.endTime);
+  // Memoized helper functions
+  const handleShiftClick = useCallback((shift, day, time) => {
+    setSelectedShiftId(shift.id);
+    if (isEditable) {
+      setCurrentShift(shift);
+    setModalData({ day, time });
+    setModalOpen(true);
     }
-
-    if (newEndMinutes < newStartMinutes) {
-      newEndMinutes += 24 * 60; // Füge 24 Stunden hinzu für Schichten über Mitternacht
-    }
-
-    // Überprüfe alle existierenden Schichten des Tages
-    const existingShifts = Object.values(scheduleData[selectedWeek][modalData.day])
-      .flat()
-      .filter(shift => shift.id !== currentShiftId);
-
-    for (const shift of existingShifts) {
-      // Prüfe, ob der Mitarbeiter in dieser Schicht eingeteilt ist
-      const isEmployeeInShift = shift.isCustom
-        ? shift.customEmployeeIds?.includes(employeeId)
-        : shift.employeeId === employeeId;
-
-      if (!isEmployeeInShift) continue;
-
-      // Berechne Start- und Endzeit der existierenden Schicht
-      let existingStartMinutes, existingEndMinutes;
-      
-      if (shift.isCustom) {
-        if (!shift.customStartTime || !shift.customEndTime) continue;
-        existingStartMinutes = getTimeInMinutes(shift.customStartTime);
-        existingEndMinutes = getTimeInMinutes(shift.customEndTime);
-      } else {
-        const shiftType = shiftTypes.find(t => t.id === shift.shiftTypeId);
-        if (!shiftType?.startTime || !shiftType?.endTime) continue;
-        existingStartMinutes = getTimeInMinutes(shiftType.startTime);
-        existingEndMinutes = getTimeInMinutes(shiftType.endTime);
-      }
-
-      if (existingEndMinutes < existingStartMinutes) {
-        existingEndMinutes += 24 * 60; // Füge 24 Stunden hinzu für Schichten über Mitternacht
-      }
-
-      // Prüfe auf Überlappung
-      if (
-        (newStartMinutes >= existingStartMinutes && newStartMinutes < existingEndMinutes) ||
-        (newEndMinutes > existingStartMinutes && newEndMinutes <= existingEndMinutes) ||
-        (newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes)
-      ) {
-        const employee = employees.find(e => e.id === employeeId);
-        return {
-          available: false,
-          employee: employee,
-          conflictingShift: shift
-        };
-      }
-    }
-
-    return { available: true };
-  };
-
-  // Hilfsfunktion zur Prüfung von doppelten Schichten
-  const checkDuplicateShifts = (day, shiftTypeId, currentShiftId = null) => {
-    if (!scheduleData[selectedWeek]?.[day]) return false;
-    
-    const existingShifts = Object.values(scheduleData[selectedWeek][day])
-      .flat()
-      .filter(shift => !shift.isCustom && shift.id !== currentShiftId);
-
-    return existingShifts.some(shift => shift.shiftTypeId === shiftTypeId);
-  };
-
-  // Schicht-Funktionen
-  const handleAddShift = (day, time) => {
+  }, [isEditable]);
+  
+  const handleAddShift = useCallback((day, time) => {
     setModalData({ day, time });
     setCurrentShift(null);
     setModalOpen(true);
-  };
-  
+  }, []);
 
-  
+  // Memoized data calculations
+  const organizedShifts = useMemo(() => {
+    if (!scheduleData[selectedWeek]) return {};
+    
+    const result = {};
+    for (const day of days) {
+      if (scheduleData[selectedWeek][day]) {
+        const dayShifts = Object.values(scheduleData[selectedWeek][day])
+          .flat()
+          .filter((shift, index, self) => 
+            index === self.findIndex(s => s.id === shift.id)
+          );
+          
+        if (selectedEmployee) {
+          const filteredShifts = dayShifts.filter(shift => {
+            if (shift.isCustom) {
+              return shift.customEmployeeIds?.includes(parseInt(selectedEmployee));
+            }
+            return shift.employeeId === parseInt(selectedEmployee);
+          });
+          result[day] = organizeOverlappingShifts(filteredShifts, shiftTypes, timeSlots);
+        } else {
+          result[day] = organizeOverlappingShifts(dayShifts, shiftTypes, timeSlots);
+        }
+      }
+    }
+    return result;
+  }, [scheduleData, selectedWeek, selectedEmployee, days, shiftTypes, timeSlots]);
+
+  // Memoize the current date check to avoid unnecessary re-renders
+  const getCurrentDateString = useCallback((day, index) => {
+    const dateString = getDateFromWeek(selectedWeek, selectedDay ? days.indexOf(selectedDay) : index);
+    const isToday = isCurrentDay(dateString);
+    return { dateString, isToday };
+  }, [selectedWeek, selectedDay, days]);
+
+  // Schicht-Funktionen
   const handleSaveShift = (shiftData) => {
     const { 
       date, 
@@ -489,7 +470,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     } = shiftData;
     
     // Prüfe auf doppelte Schichten
-    if (!isCustom && checkDuplicateShifts(date, parseInt(shiftTypeId), currentShift?.id)) {
+    if (!isCustom && checkDuplicateShifts(date, parseInt(shiftTypeId), currentShift?.id, scheduleData, selectedWeek)) {
       const shiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
       alert(`Diese Schicht (${shiftType?.name}) wurde bereits für diesen Tag vergeben!`);
       return;
@@ -511,7 +492,11 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       const availability = checkEmployeeAvailability(
         parseInt(empId),
         tempShift,
-        currentShift?.id
+        currentShift?.id,
+        scheduleData,
+        selectedWeek,
+        modalData.day,
+        shiftTypes
       );
 
       if (!availability.available) {
@@ -551,21 +536,21 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         name: mainEmployee ? mainEmployee.name : customTitle
       };
     } else {
-      const employee = employees.find(e => e.id === parseInt(employeeId));
-      const shiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
-      
-      if (!employee || !shiftType) return;
-      
+    const employee = employees.find(e => e.id === parseInt(employeeId));
+    const shiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
+    
+    if (!employee || !shiftType) return;
+    
       newShift = {
-        id: currentShift ? currentShift.id : Date.now(),
-        employeeId: parseInt(employeeId),
-        name: employee.name,
-        shiftTypeId: parseInt(shiftTypeId),
-        task: shiftType.name,
-        type: shiftType.color,
+      id: currentShift ? currentShift.id : Date.now(),
+      employeeId: parseInt(employeeId),
+      name: employee.name,
+      shiftTypeId: parseInt(shiftTypeId),
+      task: shiftType.name,
+      type: shiftType.color,
         notes,
         isCustom: false
-      };
+    };
     }
     
     setScheduleData(prev => {
@@ -660,325 +645,248 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   };
 
   // Export-Funktionen
-  const handleExport = () => {
-    let csvContent = "Zeit;";
+const handleExport = () => {
+  let csvContent = "Zeit;";
     days.forEach(day => csvContent += `${day};`);
-    csvContent += "\n";
-    
-    timeSlots.forEach(time => {
-      csvContent += `${time};`;
-      days.forEach(day => {
+  csvContent += "\n";
+  
+  timeSlots.forEach(time => {
+    csvContent += `${time};`;
+    days.forEach(day => {
         if (scheduleData[selectedWeek]?.[day]?.[time]) {
-          const shifts = scheduleData[selectedWeek][day][time];
+        const shifts = scheduleData[selectedWeek][day][time];
           const cellContent = shifts.map(shift => 
             `${shift.name} (${shift.task})${shift.notes ? ` - ${shift.notes}` : ''}`
           ).join(" / ");
-          csvContent += `"${cellContent}";`;
-        } else {
-          csvContent += ";";
-        }
-      });
-      csvContent += "\n";
+        csvContent += `"${cellContent}";`;
+      } else {
+        csvContent += ";";
+      }
     });
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Dienstplan_${selectedWeek.replace(/\s/g, '_')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+    csvContent += "\n";
+  });
   
-  const handlePdfExport = () => {
-    const doc = new jsPDF({
-      orientation: 'landscape',
-      unit: 'mm',
-      format: 'a4'
-    });
-    
-    doc.setFontSize(16);
-    doc.text(`Dienstplan ${selectedWeek}`, 14, 15);
-    
-    const tableHeaders = ['Zeit', ...days];
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `Dienstplan_${selectedWeek.replace(/\s/g, '_')}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+ 
+const handlePdfExport = () => {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+  
+  doc.setFontSize(16);
+  doc.text(`Dienstplan ${selectedWeek}`, 14, 15);
+  
+  const tableHeaders = ['Zeit', ...days];
     const tableData = timeSlots.map(time => {
-      const row = [time];
-      days.forEach(day => {
-        if (scheduleData[selectedWeek]?.[day]?.[time]) {
-          const shifts = scheduleData[selectedWeek][day][time];
+    const row = [time];
+    days.forEach(day => {
+      if (scheduleData[selectedWeek]?.[day]?.[time]) {
+        const shifts = scheduleData[selectedWeek][day][time];
           const cellContent = shifts.map(shift => 
             `${shift.name} (${shift.task})${shift.notes ? `\n↪ ${shift.notes}` : ''}`
           ).join("\n");
-          row.push(cellContent);
-        } else {
-          row.push('');
-        }
-      });
-      return row;
-    });
-    
-    doc.autoTable({
-      head: [tableHeaders],
-      body: tableData,
-      startY: 20,
-      styles: { 
-        fontSize: 8,
-        cellPadding: 2,
-        overflow: 'linebreak',
-        cellWidth: 'wrap'
-      },
-      headStyles: { 
-        fillColor: [79, 70, 229],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      columnStyles: { 
-        0: { cellWidth: 15 }
-      },
-      alternateRowStyles: { 
-        fillColor: [245, 245, 245]
-      },
-      theme: 'grid',
-      margin: { top: 20, right: 14, bottom: 20, left: 14 },
-      didParseCell: function(data) {
-        if (data.section === 'body' && data.column.index > 0) {
-          const text = data.cell.text.join('');
-          if (text.includes('Frühdienst')) {
-            data.cell.styles.fillColor = [219, 234, 254];
-          } else if (text.includes('Tagesdienst')) {
-            data.cell.styles.fillColor = [220, 252, 231];
-          } else if (text.includes('Spätdienst')) {
-            data.cell.styles.fillColor = [243, 232, 255];
-          } else if (text.includes('Nachtdienst')) {
-            data.cell.styles.fillColor = [229, 231, 235];
-          } else if (text.includes('Kochen')) {
-            data.cell.styles.fillColor = [254, 226, 226];
-          } else if (text.includes('Wochenende')) {
-            data.cell.styles.fillColor = [254, 249, 195];
-          }
-        }
+        row.push(cellContent);
+      } else {
+        row.push('');
       }
     });
-    
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      const today = new Date().toLocaleDateString('de-DE');
-      doc.setFontSize(8);
-      doc.text(`Erstellt am: ${today} | Seite ${i} von ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+      return row;
+  });
+  
+  doc.autoTable({
+    head: [tableHeaders],
+    body: tableData,
+    startY: 20,
+    styles: { 
+      fontSize: 8,
+      cellPadding: 2,
+      overflow: 'linebreak',
+      cellWidth: 'wrap'
+    },
+    headStyles: { 
+        fillColor: [79, 70, 229],
+      textColor: 255,
+      fontStyle: 'bold'
+    },
+    columnStyles: { 
+        0: { cellWidth: 15 }
+    },
+    alternateRowStyles: { 
+        fillColor: [245, 245, 245]
+    },
+    theme: 'grid',
+    margin: { top: 20, right: 14, bottom: 20, left: 14 },
+    didParseCell: function(data) {
+      if (data.section === 'body' && data.column.index > 0) {
+        const text = data.cell.text.join('');
+        if (text.includes('Frühdienst')) {
+            data.cell.styles.fillColor = [219, 234, 254];
+        } else if (text.includes('Tagesdienst')) {
+            data.cell.styles.fillColor = [220, 252, 231];
+        } else if (text.includes('Spätdienst')) {
+            data.cell.styles.fillColor = [243, 232, 255];
+        } else if (text.includes('Nachtdienst')) {
+            data.cell.styles.fillColor = [229, 231, 235];
+        } else if (text.includes('Kochen')) {
+            data.cell.styles.fillColor = [254, 226, 226];
+        } else if (text.includes('Wochenende')) {
+            data.cell.styles.fillColor = [254, 249, 195];
+        }
+      }
     }
-    
-    doc.save(`Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`);
-  };
-
-  // Aktualisiere die renderShiftCard Funktion für die Wochenansicht
-  const renderWeekViewShift = (shift, day, time) => {
-    const isSelected = selectedShiftId === shift.id;
-    const shiftStyle = {
-      position: 'absolute',
-      top: `${shift.top}px`,
-      height: `${shift.height}px`,
-      width: shift.width,
-      left: shift.left
-    };
-    
-    if (shift.isCustom) {
-      const isAbsence = shift.type === 'vacation' || shift.type === 'sick';
-      const cardClassName = `shift-card custom-entry shift-${shift.type} ${isAbsence ? 'absence-entry' : ''} ${isSelected ? 'selected' : ''}`;
-
-      return (
-        <div
-          key={shift.id}
-          className={cardClassName}
-          style={shiftStyle}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedShiftId(shift.id);
-            if (isEditable) {
-              setCurrentShift(shift);
-              setModalData({ day, time });
-              setModalOpen(true);
-            }
-          }}
-        >
-          <div className="shift-header">
-            <div className="shift-type">
-              {isAbsence ? (
-                shift.type === 'vacation' ? 'Urlaub' : 'Krank'
-              ) : shift.customTitle}
-            </div>
-            <div className="shift-employee">
-              {shift.customEmployeeIds ? 
-                shift.customEmployeeIds.map(empId => {
-                  const employee = employees.find(e => e.id === parseInt(empId));
-                  return employee ? employee.name : '';
-                }).join(', ') : 
-                shift.name
-              }
-            </div>
-            {shift.notes && (
-              <div className="shift-notes">{shift.notes}</div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // Reguläre Schicht
-    const shiftType = shiftTypes.find(t => t.id === shift.shiftTypeId);
-    if (!shiftType) return null;
-
-    return (
-      <div
-        key={shift.id}
-        className={`shift-card shift-${shiftType.color || 'gray'} ${isSelected ? 'selected' : ''}`}
-        style={shiftStyle}
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedShiftId(shift.id);
-          if (isEditable) {
-            setCurrentShift(shift);
-            setModalData({ day, time });
-            setModalOpen(true);
-          }
-        }}
-      >
-        <div className="shift-header">
-          <div className="shift-type">{shiftType.name}</div>
-          <div className="shift-employee">{shift.name}</div>
-          {shift.notes && (
-            <div className="shift-notes">{shift.notes}</div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Render der Filterauswahl
-  const renderEmployeeFilter = () => (
-    <div className="employee-filter">
-      <select
-        className="filter-select"
-        value={selectedEmployee}
-        onChange={(e) => setSelectedEmployee(e.target.value)}
-      >
-        <option value="">Alle Mitarbeiter</option>
-        {employees.map(employee => (
-          <option key={employee.id} value={employee.id}>
-            {employee.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+  });
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    const today = new Date().toLocaleDateString('de-DE');
+    doc.setFontSize(8);
+    doc.text(`Erstellt am: ${today} | Seite ${i} von ${pageCount}`, 14, doc.internal.pageSize.height - 10);
+  }
+  
+  doc.save(`Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`);
+};
 
   // Render
   return (
     <div className="card">
       <div className="card-header">
-        <div className="title-container">
-          <h2 className="card-title">Übersicht</h2>
+  <div className="title-container">
+    <h2 className="card-title">Übersicht</h2>
         </div>
         <div className="card-actions">
-          {renderEmployeeFilter()}
-          <div className="week-navigation">
-            <button
-              className="week-nav-button"
-              onClick={goToPreviousWeek}
-              disabled={weeks.indexOf(selectedWeek) === 0}
-            >◀</button>
+          <div className="filter-container">
             <select
-              className="select"
-              value={selectedWeek}
-              onChange={(e) => setSelectedWeek(e.target.value)}
+              className="filter-select"
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
             >
-              {weeks.map((week) => (
-                <option key={week} value={week}>{week}</option>
+              <option value="">Alle Mitarbeiter</option>
+              {employees.map(employee => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                </option>
               ))}
             </select>
-            <button
-              className="week-nav-button"
-              onClick={goToNextWeek}
-              disabled={weeks.indexOf(selectedWeek) === weeks.length - 1}
-            >▶</button>
-          </div>
+            <select
+              className="filter-select"
+              value={selectedDay}
+              onChange={(e) => setSelectedDay(e.target.value)}
+            >
+              <option value="">Alle Tage</option>
+              {days.map((day, index) => (
+                <option key={day} value={day}>
+                  {day} ({getDateFromWeek(selectedWeek, index)})
+                </option>
+              ))}
+            </select>
+    </div>
+    <div className="week-navigation">
+      <button
+        className="week-nav-button"
+        onClick={goToPreviousWeek}
+        disabled={weeks.indexOf(selectedWeek) === 0}
+      >◀</button>
+      <select
+              className="filter-select"
+        value={selectedWeek}
+        onChange={(e) => setSelectedWeek(e.target.value)}
+      >
+        {weeks.map((week) => (
+          <option key={week} value={week}>{week}</option>
+        ))}
+      </select>
+      <button
+        className="week-nav-button"
+        onClick={goToNextWeek}
+        disabled={weeks.indexOf(selectedWeek) === weeks.length - 1}
+      >▶</button>
+    </div>
           {isEditable && (
-            <div className="export-buttons">
-              <button className="button" onClick={handleExport}>CSV</button>
-              <button className="button" onClick={handlePdfExport}>PDF</button>
-            </div>
+    <div className="export-buttons">
+      <button className="button" onClick={handleExport}>CSV</button>
+      <button className="button" onClick={handlePdfExport}>PDF</button>
+                    </div>
           )}
         </div>
       </div>
-
+      
       <div className="schedule-container">
-        <table className="schedule-table">
-          <thead>
-            <tr>
-              <th className="schedule-header time-column">Zeit</th>
-              {days.map((day, index) => (
-                <th key={day} className="schedule-header">
-                  <div className="day-header">
-                    <div className="day-name">{day}</div>
-                    <div className="day-date">{getDateFromWeek(selectedWeek, index)}</div>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {timeSlots.map((time, index) => (
-              <tr key={time} className="schedule-row">
-                <td className="schedule-time">{time}</td>
-                {days.map((day) => (
-                  <td key={`${day}-${time}`} className="schedule-cell">
-                    {index === 0 && scheduleData[selectedWeek]?.[day] && (
-                      <div className="day-container">
-                        {organizeOverlappingShifts(
-                          filterShiftsByEmployee(
-                            Object.values(scheduleData[selectedWeek][day])
-                              .flat()
-                              .filter((shift, index, self) => 
-                                index === self.findIndex(s => s.id === shift.id)
-                              )
-                          ),
-                          shiftTypes
-                        ).map(shift => renderWeekViewShift(shift, day, time))}
-                      </div>
-                    )}
-                    {isEditable && (
-                      <button 
-                        className="add-shift-button" 
-                        onClick={() => handleAddShift(day, time)}
-                      >+</button>
-                    )}
-                  </td>
-                ))}
-              </tr>
+    <table className="schedule-table">
+      <thead>
+        <tr>
+          <th className="schedule-header time-column">Zeit</th>
+              {(selectedDay ? [selectedDay] : days).map((day, index) => {
+                const { dateString, isToday } = getCurrentDateString(day, index);
+                return (
+                  <th key={day} className={`schedule-header ${selectedDay ? 'full-width' : ''}`}>
+                    <div className={`day-header ${isToday ? 'current-day' : ''}`}>
+                      <div className="day-name">{day}</div>
+                      <div className="day-date">{dateString}</div>
+                    </div>
+                  </th>
+                );
+              })}
+        </tr>
+      </thead>
+      <tbody>
+        {timeSlots.map((time, index) => (
+          <tr key={time} className="schedule-row">
+            <td className="schedule-time">{time}</td>
+                {(selectedDay ? [selectedDay] : days).map((day) => (
+                  <ScheduleCell
+                    key={`${day}-${time}`}
+                    day={day}
+                    time={time}
+                    isFirstRow={index === 0}
+                    shifts={organizedShifts[day]}
+                    shiftTypes={shiftTypes}
+                    employees={employees}
+                    selectedShiftId={selectedShiftId}
+                    isEditable={isEditable}
+                    onShiftClick={handleShiftClick}
+                    onAddClick={handleAddShift}
+                    isFullWidth={!!selectedDay}
+                  />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+</div>
     
       {isEditable && (
-        <Modal 
-          isOpen={modalOpen} 
+      <Modal 
+        isOpen={modalOpen} 
           onClose={() => {
             setModalOpen(false);
             setSelectedShiftId(null);
           }}
-          title={currentShift ? "Schicht bearbeiten" : "Schicht hinzufügen"}
+          title={currentShift ? (
+            currentShift.isCustom && (currentShift.type === 'vacation' || currentShift.type === 'sick') 
+              ? `${currentShift.type === 'vacation' ? 'Urlaub' : 'Krankmeldung'} bearbeiten` 
+              : "Schicht bearbeiten"
+          ) : "Schicht hinzufügen"}
         >
           <div className="modal-content">
-            <ShiftAssignmentForm 
-              date={modalData.day}
-              time={modalData.time}
-              employees={employees}
-              shiftTypes={shiftTypes}
-              existingShift={currentShift}
-              onSave={handleSaveShift}
+        <ShiftAssignmentForm 
+          date={modalData.day}
+          time={modalData.time}
+          employees={employees}
+          shiftTypes={shiftTypes}
+          existingShift={currentShift}
+          onSave={handleSaveShift}
               onCancel={() => {
                 setModalOpen(false);
                 setSelectedShiftId(null);
@@ -989,22 +897,28 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
                 <button
                   className="button delete"
                   onClick={() => {
-                    if (window.confirm('Möchten Sie diese Schicht wirklich löschen?')) {
+                    const confirmMessage = currentShift.isCustom && (currentShift.type === 'vacation' || currentShift.type === 'sick')
+                      ? `Möchten Sie diesen ${currentShift.type === 'vacation' ? 'Urlaubseintrag' : 'Krankheitseintrag'} wirklich löschen?`
+                      : 'Möchten Sie diese Schicht wirklich löschen?';
+                    
+                    if (window.confirm(confirmMessage)) {
                       handleDeleteShift(modalData.day, modalData.time, currentShift.id);
                       setModalOpen(false);
                       setSelectedShiftId(null);
                     }
                   }}
                 >
-                  Schicht löschen
+                  {currentShift.isCustom && (currentShift.type === 'vacation' || currentShift.type === 'sick')
+                    ? `${currentShift.type === 'vacation' ? 'Urlaub' : 'Krankmeldung'} löschen`
+                    : 'Schicht löschen'}
                 </button>
               </div>
             )}
           </div>
-        </Modal>
+      </Modal>
       )}
     </div>
   );
 }
 
-export default WeekView;
+export default memo(WeekView);

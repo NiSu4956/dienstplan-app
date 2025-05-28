@@ -1,6 +1,7 @@
 .schedule-table {
   width: 100%;
   border-collapse: collapse;
+  contain: content;
 }
 
 .schedule-header {
@@ -8,6 +9,9 @@
   background-color: #f3f4f6;
   text-align: left;
   font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .schedule-cell {
@@ -16,6 +20,7 @@
   position: relative;
   height: 60px;
   vertical-align: top;
+  contain: layout style paint;
 }
 
 .day-container {
@@ -25,6 +30,8 @@
   right: 0;
   bottom: 0;
   min-height: 800px;
+  contain: layout style;
+  will-change: transform;
 }
 
 .shift-card {
@@ -35,48 +42,75 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   z-index: 1;
+  contain: content;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.shift-card:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.shift-card.selected {
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 .shift-card.custom-entry {
   border-left: 4px solid;
 }
 
-.shift-card.shift-blue { border-left-color: #3b82f6; background-color: #eff6ff; }
-.shift-card.shift-green { border-left-color: #10b981; background-color: #ecfdf5; }
-.shift-card.shift-purple { border-left-color: #8b5cf6; background-color: #f5f3ff; }
-.shift-card.shift-gray { border-left-color: #6b7280; background-color: #f9fafb; }
-.shift-card.shift-red { border-left-color: #ef4444; background-color: #fef2f2; }
-.shift-card.shift-yellow { border-left-color: #f59e0b; background-color: #fffbeb; }
-.shift-card.shift-vacation { border-left-color: #3b82f6; background-color: #dbeafe; }
-.shift-card.shift-sick { border-left-color: #ef4444; background-color: #fee2e2; }
+:root {
+  --blue-border: #3b82f6;
+  --blue-bg: #eff6ff;
+  --green-border: #10b981;
+  --green-bg: #ecfdf5;
+  --purple-border: #8b5cf6;
+  --purple-bg: #f5f3ff;
+  --gray-border: #6b7280;
+  --gray-bg: #f9fafb;
+  --red-border: #ef4444;
+  --red-bg: #fef2f2;
+  --yellow-border: #f59e0b;
+  --yellow-bg: #fffbeb;
+  --vacation-bg: #dbeafe;
+  --sick-bg: #fee2e2;
+}
+
+.shift-card.shift-blue { border-left-color: var(--blue-border); background-color: var(--blue-bg); }
+.shift-card.shift-green { border-left-color: var(--green-border); background-color: var(--green-bg); }
+.shift-card.shift-purple { border-left-color: var(--purple-border); background-color: var(--purple-bg); }
+.shift-card.shift-gray { border-left-color: var(--gray-border); background-color: var(--gray-bg); }
+.shift-card.shift-red { border-left-color: var(--red-border); background-color: var(--red-bg); }
+.shift-card.shift-yellow { border-left-color: var(--yellow-border); background-color: var(--yellow-bg); }
+.shift-card.shift-vacation { border-left-color: var(--blue-border); background-color: var(--vacation-bg); }
+.shift-card.shift-sick { border-left-color: var(--red-border); background-color: var(--sick-bg); }
 
 .shift-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 4px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.shift-name {
+.shift-type {
   font-weight: 600;
   font-size: 0.9rem;
+  line-height: 1.2;
 }
 
-.shift-time {
+.shift-employee {
   font-size: 0.8rem;
-  color: #6b7280;
-  margin-bottom: 2px;
-}
-
-.shift-task {
-  font-size: 0.8rem;
+  line-height: 1.2;
   color: #374151;
 }
 
 .shift-notes {
   font-size: 0.8rem;
+  line-height: 1.2;
   color: #6b7280;
-  margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -132,7 +166,8 @@
   color: #9ca3af;
   font-size: 16px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease-out;
+  will-change: opacity;
 }
 
 .schedule-cell:hover .add-shift-button {
@@ -147,4 +182,266 @@
 .absence-entry {
   width: 100% !important;
   left: 0 !important;
+  background-color: var(--vacation-bg);
+  border: 1px solid var(--blue-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.absence-entry.shift-sick {
+  background-color: var(--sick-bg);
+  border-color: var(--red-border);
+}
+
+.absence-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px;
+}
+
+.absence-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  color: #1e40af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-sick .absence-type {
+  color: #b91c1c;
+}
+
+.absence-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.absence-employee-name {
+  font-weight: 600;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.absence-time {
+  font-size: 0.85rem;
+  color: #4b5563;
+  font-weight: normal;
+  padding-left: 28px;
+}
+
+.absence-entry .shift-notes {
+  margin-top: 4px;
+  padding: 4px 8px 4px 28px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  font-style: italic;
+  color: #4b5563;
+}
+
+.shift-selected-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 20px 20px 0;
+  border-color: transparent #3b82f6 transparent transparent;
+}
+
+.absence-entry.selected {
+  box-shadow: 0 0 0 2px #3b82f6, 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px;
+}
+
+.title-container {
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: nowrap;
+}
+
+.filter-container {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.employee-filter,
+.day-filter {
+  min-width: 160px;
+  max-width: 200px;
+  width: 100%;
+  flex-shrink: 1;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-select:hover {
+  border-color: #d1d5db;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.week-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.week-navigation .filter-select {
+  min-width: 200px;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.button {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.button:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.week-nav-button {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background-color: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.week-nav-button:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.week-nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.schedule-header.full-width {
+  width: 100%;
+}
+
+.schedule-cell.full-width {
+  width: 100%;
+}
+
+.schedule-cell.full-width .day-container {
+  min-height: 800px;
+}
+
+.schedule-cell.full-width .shift-card {
+  width: calc(100% - 8px) !important;
+  margin: 4px;
+  left: 0 !important;
+}
+
+/* Anpassungen für die Tagesansicht */
+.schedule-cell.full-width .absence-entry {
+  width: calc(100% - 8px) !important;
+  margin: 4px;
+}
+
+.day-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.day-header.current-day {
+  background-color: #eef2ff;
+  border: 1px solid #818cf8;
+  position: relative;
+}
+
+.day-header.current-day::before {
+  content: '•';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: #4f46e5;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.day-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.current-day .day-name {
+  color: #4f46e5;
+}
+
+.day-date {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.current-day .day-date {
+  color: #4f46e5;
+  font-weight: 500;
 } 
