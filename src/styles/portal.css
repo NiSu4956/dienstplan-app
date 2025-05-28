@@ -1,0 +1,357 @@
+/* Employee Portal Styles */
+.employee-portal {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.portal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.portal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Notification Styles */
+.notifications-section,
+.pending-requests-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.notification-list,
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.notification-card,
+.request-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+  background: #f9fafb;
+}
+
+.notification-header,
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.notification-date,
+.request-date {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.notification-content,
+.request-content {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.admin-comment {
+  margin-top: 12px;
+  padding: 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  font-style: italic;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-yellow {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-green {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Admin Notifications */
+.admin-notifications {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.admin-response {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.employee-info {
+  margin-bottom: 8px;
+}
+
+.date-range {
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+
+.request-notes {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.processed-info {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  background: white;
+  border-radius: 8px;
+  color: #6b7280;
+}
+
+/* Request Form */
+.request-form {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .portal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .portal-actions {
+    width: 100%;
+  }
+
+  .portal-actions .button {
+    flex: 1;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+}
+
+.request-form-container {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.select,
+.input,
+.textarea {
+  padding: 8px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.requests-history {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.request-card {
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  padding: 16px;
+  background: #F9FAFB;
+}
+
+.request-card.vacation {
+  border-left: 4px solid #3B82F6;
+}
+
+.request-card.sickness {
+  border-left: 4px solid #EF4444;
+}
+
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.request-type {
+  font-weight: 500;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.pending {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.status-badge.approved {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.status-badge.rejected {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.request-dates {
+  font-size: 14px;
+  color: #6B7280;
+  margin-bottom: 8px;
+}
+
+.request-note {
+  font-size: 14px;
+  color: #4B5563;
+  padding: 8px;
+  background: #F3F4F6;
+  border-radius: 4px;
+}
+
+/* Admin Notifications Styles */
+.pending-requests {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.no-requests {
+  text-align: center;
+  color: #6B7280;
+  padding: 20px;
+}
+
+.request-details {
+  margin: 12px 0;
+}
+
+.request-details p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.request-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.button.approve {
+  background: #10B981;
+  color: white;
+}
+
+.button.approve:hover {
+  background: #059669;
+}
+
+.button.reject {
+  background: #EF4444;
+  color: white;
+}
+
+.button.reject:hover {
+  background: #DC2626;
+}
+
+/* DatePicker Customization */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 14px;
+} 

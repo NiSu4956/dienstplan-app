@@ -1,0 +1,1662 @@
+/* Grundlegende Stile */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f3f4f6;
+}
+
+.header {
+  background-color: #4f46e5;
+  color: white;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.text {
+  color: #4b5563;
+}
+
+.button {
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #4338ca;
+}
+
+.nav {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+}
+
+.nav-link {
+  padding: 1rem 1.5rem;
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: #4f46e5;
+}
+
+.nav-link.active {
+  color: #4f46e5;
+  border-bottom: 2px solid #4f46e5;
+}/* Ergänzungen für Header und Layout */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.main-content {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* Flexbox und Grid Layouts */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.grid {
+  display: grid;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Abstand */
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.p-4 {
+  padding: 1rem;
+}/* Wochenübersicht */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+}
+
+.schedule-container {
+  overflow-x: auto;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.schedule-header {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 500;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.time-column {
+  width: 80px;
+  position: sticky;
+  left: 0;
+  background-color: #f9fafb;
+  z-index: 1;
+}
+
+.schedule-row:hover {
+  background-color: #f9fafb;
+}
+
+.schedule-time {
+  padding: 0.75rem 0.5rem;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.schedule-cell {
+  position: relative;
+  height: 60px;
+  padding: 0;
+}
+
+.day-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 900px; /* 15 Stunden * 60px */
+  z-index: 1;
+}
+
+.shift-card {
+  position: absolute;
+  padding: 6px;
+  border-radius: 4px;
+  margin: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left-width: 3px;
+  border-left-style: solid;
+  z-index: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.shift-card.selected {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* Verbesserte Lesbarkeit für Schichten */
+.shift-card .shift-header {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+}
+
+.shift-card .shift-type {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-card .shift-employee {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-card .shift-notes {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #666;
+}
+
+/* Hover-Effekte */
+.shift-card:hover {
+  transform: scale(1.02);
+  z-index: 15;
+}
+
+.shift-card.selected:hover {
+  transform: scale(1.05);
+}
+
+/* Überlappende Schichten */
+.shift-card[style*="width:"] {
+  border-right: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.shift-card[style*="width:"]:last-child {
+  border-right: none;
+}
+
+/* Minimalhöhe für sehr kurze Schichten */
+.shift-card {
+  min-height: 40px;
+}
+
+.shift-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.shift-card {
+  position: relative;
+  padding: 6px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left-width: 3px;
+  border-left-style: solid;
+  z-index: 1;
+}
+
+.shift-card.selected {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.shift-name {
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.shift-task {
+  font-size: 0.7rem;
+}
+
+.shift-blue {
+  background-color: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.shift-green {
+  background-color: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.shift-yellow {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.shift-purple {
+  background-color: #f3e8ff;
+  border-color: #8b5cf6;
+}
+
+.shift-red {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+}
+
+.shift-gray {
+  background-color: #f3f4f6;
+  border-color: #6b7280;
+}
+
+.shift-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.shift-card-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #1f2937;
+}
+
+.shift-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.shift-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shift-detail {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.shift-detail-label {
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+/* Einstellungen */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .settings-container {
+    flex-direction: row;
+  }
+}
+
+.settings-sidebar {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .settings-sidebar {
+    width: 200px;
+  }
+}
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-right: none;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .settings-tabs {
+    border-right: 1px solid #e5e7eb;
+    margin-bottom: 0;
+  }
+}
+
+.settings-tab {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: #6b7280;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.settings-tab:hover {
+  background-color: #f3f4f6;
+  color: #4f46e5;
+}
+
+.settings-tab.active {
+  background-color: #f3f4f6;
+  color: #4f46e5;
+  font-weight: 500;
+}
+
+.settings-content {
+  flex-grow: 1;
+  padding-left: 0;
+}
+
+@media (min-width: 768px) {
+  .settings-content {
+    padding-left: 1.5rem;
+  }
+}
+
+.settings-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.form-input-group {
+  display: flex;
+  align-items: center;
+}
+
+.form-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 80px;
+  margin-right: 0.5rem;
+}
+
+.form-input-suffix {
+  color: #6b7280;
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+}
+
+.checkbox-label {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.form-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 200px;
+  background-color: white;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.button.secondary {
+  background-color: #f3f4f6;
+  color: #4f46e5;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.button.secondary:hover {
+  background-color: #e5e7eb;
+}
+
+.form-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.modal-content-small {
+  width: 95%;
+  max-width: 400px;
+}
+
+.modal-content-medium {
+  width: 95%;
+  max-width: 600px;
+}
+
+.modal-content-large {
+  width: 95%;
+  max-width: 900px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.modal-close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.button.delete {
+  background-color: #ef4444;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.button.delete:hover {
+  background-color: #dc2626;
+}
+
+/* Verbesserte Lesbarkeit für ausgewählte Schichten */
+.shift-card.selected .shift-type {
+  font-weight: 600;
+}
+
+.shift-card.selected .shift-employee {
+  font-weight: 500;
+}
+
+.shift-card.selected .shift-notes {
+  display: block;
+  white-space: normal;
+}
+
+/* Hover-Effekte */
+.shift-card:hover:not(.selected) {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Zusätzliche Stile für Formulare und Wochennavigation */
+.form-textarea {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 100%;
+  resize: vertical;
+}
+
+.form-static-text {
+  padding: 0.5rem 0;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.week-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.week-nav-button {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  color: #4b5563;
+}
+
+.week-nav-button:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  color: #4f46e5;
+}
+
+.week-nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shift-notes {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  color: #6b7280;
+}/* Weitere Formular- und Tag-Stile */
+.form-input-full {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 100%;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.tag-with-remove {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background-color: #e0e7ff;
+  color: #4f46e5;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.tag-remove {
+  background: none;
+  border: none;
+  margin-left: 0.25rem;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+}
+
+.qualification-add {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form-select-sm {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  flex-grow: 1;
+}
+
+.button-sm {
+  padding: 0.25rem 0.5rem;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.button-sm:hover:not(:disabled) {
+  background-color: #4338ca;
+}
+
+.button-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shift-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.shift-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.shift-action-button {
+  background: none;
+  border: none;
+  font-size: 10px;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.shift-action-button:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}/* Suche in der Mitarbeiterverwaltung - finde diese Klasse */
+/* Suchfeld in der Mitarbeiterverwaltung */
+.search-container {
+  position: relative;
+  width: 200px; /* Kleinere Breite */
+  min-width: 150px;
+  max-width: 200px; /* Maximale Breite festlegen */
+  margin-right: 10px; /* Abstand zum Button */
+  flex-shrink: 1; /* Erlaubt dem Element, bei Bedarf zu schrumpfen */
+}
+
+/* Verbessere das Layout der Aktionsleiste */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Abstand zwischen Elementen */
+  flex-wrap: wrap; /* Erlaubt Umbrechen bei kleineren Bildschirmen */
+}
+
+/* Zusätzliche Anpassungen für responsive Ansicht */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .card-actions {
+    margin-top: 10px;
+    width: 100%;
+  }
+  
+  .search-container {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+/* Stelle sicher, dass die Symbole im Suchfeld richtig positioniert sind */
+.search-icon {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 0.875rem;
+  pointer-events: none; /* Verhindert, dass das Symbol Klicks blockiert */
+}
+
+.export-buttons {
+  display: flex;
+  gap: 10px;
+}
+/* Formularelemente für die Schichtverwaltung */
+.form-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 120px;
+}
+
+.form-input-full {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 100%;
+}
+
+.form-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Farb-Vorschau für die Farbauswahl */
+.color-preview {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 10px;
+  vertical-align: middle;
+}/* Anpassungen für die Zeitplan-Tabelle */
+.schedule-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.schedule-cell {
+  border: 1px solid #e5e7eb;
+  min-width: 120px;
+  height: 60px; /* Feste Höhe für jede Zeiteinheit */
+  padding: 0;
+  position: relative;
+}
+
+.day-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 900px; /* 15 Zeitslots * 60px Höhe */
+  z-index: 1;
+}
+
+.shift-card {
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  padding: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+/* Kleinere Textgröße für parallele Schichten */
+.shift-card.parallel .shift-name {
+  font-size: 0.75rem;
+}
+
+.shift-card.parallel .shift-task,
+.shift-card.parallel .shift-time {
+  font-size: 0.65rem;
+}
+
+/* Höherer Kontrast für Lesbarkeit bei parallelen Schichten */
+.shift-card.parallel {
+  opacity: 0.95;
+}
+
+/* Trennlinien zwischen parallelen Schichten */
+.shift-card.parallel {
+  border-right: 2px dashed rgba(255, 255, 255, 0.3);
+}
+
+.shift-card.parallel:last-child {
+  border-right: none;
+}
+
+.shift-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Angepasster Add-Button Style */
+.add-shift-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  padding: 0;
+  transition: all 0.2s;
+  z-index: 5;
+}
+
+.add-shift-button:hover {
+  background-color: #4f46e5;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Floating Add Button in der Tagesansicht */
+.add-shift-floating {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.add-shift-floating:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+/* Anpassung der Zellen für den Add-Button */
+.schedule-cell {
+  position: relative;
+  border: 1px solid #e5e7eb;
+  min-width: 120px;
+  height: 60px;
+  padding: 0;
+}
+
+/* Weitere CSS-Anpassungen für die Schichtkarten */
+.shift-name {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-task {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-time {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.shift-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.shift-actions {
+  display: flex;
+  gap: 3px;
+}
+
+.shift-action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.shift-action-button:hover {
+  opacity: 1;
+}
+
+/* View Toggle */
+.view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.toggle-button {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-button.active {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+}
+
+.toggle-button:hover:not(.active) {
+  background: #f3f4f6;
+}
+
+/* Anpassung der Tagesansicht und Timeline */
+.day-view {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+  height: calc(100vh - 200px);
+  overflow: auto;
+}
+
+.day-view-header {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.day-view .schedule-container {
+  position: relative;
+  min-height: 900px; /* 15 Stunden * 60px */
+}
+
+.day-view .schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.day-view .schedule-time {
+  width: 80px;
+  padding: 8px;
+  font-weight: 500;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.day-view .schedule-cell {
+  border: 1px solid #e5e7eb;
+  height: 60px;
+  position: relative;
+}
+
+.day-view .day-container {
+  position: absolute;
+  top: 0;
+  left: 80px; /* Breite der Zeitspalte */
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.day-view .shift-card {
+  pointer-events: auto;
+  margin-right: 4px;
+}
+
+/* Gemeinsame Styles für Tag- und Wochenansicht */
+.shift-card {
+  position: absolute;
+  padding: 6px;
+  border-radius: 4px;
+  margin: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left-width: 3px;
+  border-left-style: solid;
+  z-index: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.shift-card.selected {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.shift-card:hover {
+  transform: scale(1.02);
+  z-index: 15;
+}
+
+.shift-card.selected:hover {
+  transform: scale(1.05);
+}
+
+/* Überlappende Schichten */
+.shift-card[style*="width:"] {
+  border-right: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.shift-card[style*="width:"]:last-child {
+  border-right: none;
+}
+
+/* Add-Button Styling */
+.add-shift-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  padding: 0;
+  transition: all 0.2s;
+  z-index: 5;
+}
+
+.add-shift-button:hover {
+  background-color: #4f46e5;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Farben für freie Einträge in der Tagesansicht */
+.day-shift.custom-entry.shift-blue { background-color: #dbeafe; border-left-color: #3b82f6; }
+.day-shift.custom-entry.shift-green { background-color: #dcfce7; border-left-color: #10b981; }
+.day-shift.custom-entry.shift-yellow { background-color: #fef3c7; border-left-color: #f59e0b; }
+.day-shift.custom-entry.shift-purple { background-color: #f3e8ff; border-left-color: #8b5cf6; }
+.day-shift.custom-entry.shift-red { background-color: #fee2e2; border-left-color: #ef4444; }
+.day-shift.custom-entry.shift-gray { background-color: #f3f4f6; border-left-color: #6b7280; }
+
+/* Farben für freie Einträge in der Wochenansicht */
+.shift-card.custom-entry.shift-blue { background-color: #dbeafe; border-left: 3px solid #3b82f6; }
+.shift-card.custom-entry.shift-green { background-color: #dcfce7; border-left: 3px solid #10b981; }
+.shift-card.custom-entry.shift-yellow { background-color: #fef3c7; border-left: 3px solid #f59e0b; }
+.shift-card.custom-entry.shift-purple { background-color: #f3e8ff; border-left: 3px solid #8b5cf6; }
+.shift-card.custom-entry.shift-red { background-color: #fee2e2; border-left: 3px solid #ef4444; }
+.shift-card.custom-entry.shift-gray { background-color: #f3f4f6; border-left: 3px solid #6b7280; }
+
+/* Styles für Urlaub und Krankheit */
+.shift-card.custom-entry.shift-vacation,
+.day-shift.custom-entry.shift-vacation {
+  background-color: #fef3c7 !important;
+  border: 2px solid #f59e0b !important;
+  color: #92400e !important;
+}
+
+.shift-card.custom-entry.shift-sick,
+.day-shift.custom-entry.shift-sick {
+  background-color: #fee2e2 !important;
+  border: 2px solid #ef4444 !important;
+  color: #991b1b !important;
+}
+
+/* Einheitliche Farben für Schichttypen */
+.shift-frueh, .shift-blue {
+  background-color: #dbeafe !important;
+  border-left: 4px solid #3b82f6 !important;
+  color: #1e40af !important;
+}
+
+.shift-spaet, .shift-purple {
+  background-color: #f3e8ff !important;
+  border-left: 4px solid #8b5cf6 !important;
+  color: #5b21b6 !important;
+}
+
+.shift-nacht, .shift-gray {
+  background-color: #e5e7eb !important;
+  border-left: 4px solid #4b5563 !important;
+  color: #1f2937 !important;
+}
+
+.shift-tag, .shift-green {
+  background-color: #dcfce7 !important;
+  border-left: 4px solid #10b981 !important;
+  color: #065f46 !important;
+}
+
+/* Anpassung des Headers */
+.day-view-header .day-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.day-view-header .day-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Tagesansicht Layout */
+.day-view {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  height: calc(100vh - 200px);
+  overflow: auto;
+  width: 100%;
+}
+
+.day-view .schedule-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.day-view .schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.day-view .schedule-time {
+  width: 80px;
+  padding: 8px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  text-align: center;
+  vertical-align: top;
+  font-size: 0.875rem;
+  color: #374151;
+  height: 60px; /* Feste Höhe für Zeitslots */
+}
+
+.day-view .schedule-cell {
+  border: 1px solid #e5e7eb;
+  padding: 0;
+  position: relative;
+  height: 60px; /* Feste Höhe für Zeitslots */
+  background: white;
+}
+
+.day-view .day-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 900px; /* 15 Stunden * 60px pro Stunde */
+}
+
+/* Tagesansicht Schichten */
+.day-view .shift-card {
+  position: absolute;
+  padding: 6px;
+  border-radius: 4px;
+  margin: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  z-index: 1;
+  min-height: 40px;
+}
+
+.day-view .shift-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.day-view .shift-card.parallel {
+  width: calc(50% - 1px);
+}
+
+.day-view .shift-card:nth-child(2) {
+  left: calc(50% + 1px);
+}
+
+/* Anpassung der Zeitskala */
+.day-view .schedule-row {
+  height: 60px;
+}
+
+/* Verbesserte Lesbarkeit der Schichtinhalte */
+.day-view .shift-card .shift-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.day-view .shift-card .shift-type {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-view .shift-card .shift-employee {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-view .shift-card .shift-notes {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ausgewählte Schichten in der Wochenansicht */
+.shift-card {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.shift-card.selected {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* Aktionsbuttons für ausgewählte Schichten */
+.shift-card .shift-actions {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 4px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.shift-action-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.2s;
+  color: #374151;
+}
+
+.shift-action-button.edit {
+  color: #4f46e5;
+}
+
+.shift-action-button.edit:hover {
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+.shift-action-button.delete {
+  color: #ef4444;
+}
+
+.shift-action-button.delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Verbesserte Lesbarkeit für ausgewählte Schichten */
+.shift-card.selected .shift-header {
+  padding-bottom: 32px; /* Platz für Aktionsbuttons */
+}
+
+.shift-card.selected .shift-type {
+  font-size: 0.95rem;
+}
+
+.shift-card.selected .shift-employee {
+  font-size: 0.85rem;
+}
+
+.shift-card.selected .shift-notes {
+  display: block;
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Hover-Effekte */
+.shift-card:hover:not(.selected) {
+  transform: scale(1.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Anpassungen für parallele Schichten */
+.shift-card.parallel.selected {
+  width: calc(50% - 1px);
+  min-width: 150px;
+}
+
+/* Verbesserter Kontrast für Aktionsbuttons */
+.shift-card.selected .shift-actions {
+  backdrop-filter: blur(4px);
+}
+
+/* Schichten in der Wochenansicht */
+.schedule-cell .shift-card {
+  position: relative;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+/* Ausgewählte Schichten */
+.shift-card.selected {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+/* Schicht-Header */
+.shift-card .shift-header {
+  position: relative;
+  padding-right: 24px;
+}
+
+/* Schicht-Typ */
+.shift-card .shift-type {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+}
+
+/* Mitarbeiter-Name */
+.shift-card .shift-employee {
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+/* Notizen */
+.shift-card .shift-notes {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+/* Aktionsbuttons */
+.shift-card .shift-actions {
+  display: none;
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  flex-direction: column;
+  gap: 4px;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 4px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 101;
+}
+
+.shift-card.selected .shift-actions {
+  display: flex;
+}
+
+.shift-action-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.shift-action-button.edit {
+  color: #4f46e5;
+}
+
+.shift-action-button.edit:hover {
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+.shift-action-button.delete {
+  color: #ef4444;
+}
+
+.shift-action-button.delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Anpassungen für ausgewählte Schichten */
+.shift-card.selected .shift-header {
+  padding-bottom: 32px;
+}
+
+.shift-card.selected .shift-type {
+  font-size: 0.95rem;
+}
+
+.shift-card.selected .shift-notes {
+  display: block;
+  white-space: normal;
+}
+
+/* Hover-Effekte */
+.shift-card:hover:not(.selected) {
+  transform: scale(1.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Farben für die verschiedenen Schichttypen */
+.shift-card.shift-blue { background-color: #dbeafe; border-left-color: #3b82f6; }
+.shift-card.shift-green { background-color: #dcfce7; border-left-color: #10b981; }
+.shift-card.shift-yellow { background-color: #fef3c7; border-left-color: #f59e0b; }
+.shift-card.shift-purple { background-color: #f3e8ff; border-left-color: #8b5cf6; }
+.shift-card.shift-red { background-color: #fee2e2; border-left-color: #ef4444; }
+.shift-card.shift-gray { background-color: #f3f4f6; border-left-color: #6b7280; }
+
+/* Spezielle Einträge */
+.shift-card.custom-entry.shift-vacation {
+  background-color: #fef3c7;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.shift-card.custom-entry.shift-sick {
+  background-color: #fee2e2;
+  border-left-color: #ef4444;
+  color: #991b1b;
+}

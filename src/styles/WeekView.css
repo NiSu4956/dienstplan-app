@@ -1,0 +1,150 @@
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.schedule-header {
+  padding: 10px;
+  background-color: #f3f4f6;
+  text-align: left;
+  font-weight: 600;
+}
+
+.schedule-cell {
+  border: 1px solid #e5e7eb;
+  padding: 0;
+  position: relative;
+  height: 60px;
+  vertical-align: top;
+}
+
+.day-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 800px;
+}
+
+.shift-card {
+  background-color: white;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.shift-card.custom-entry {
+  border-left: 4px solid;
+}
+
+.shift-card.shift-blue { border-left-color: #3b82f6; background-color: #eff6ff; }
+.shift-card.shift-green { border-left-color: #10b981; background-color: #ecfdf5; }
+.shift-card.shift-purple { border-left-color: #8b5cf6; background-color: #f5f3ff; }
+.shift-card.shift-gray { border-left-color: #6b7280; background-color: #f9fafb; }
+.shift-card.shift-red { border-left-color: #ef4444; background-color: #fef2f2; }
+.shift-card.shift-yellow { border-left-color: #f59e0b; background-color: #fffbeb; }
+.shift-card.shift-vacation { border-left-color: #3b82f6; background-color: #dbeafe; }
+.shift-card.shift-sick { border-left-color: #ef4444; background-color: #fee2e2; }
+
+.shift-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.shift-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.shift-time {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.shift-task {
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.shift-notes {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shift-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.shift-action-button {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #6b7280;
+  opacity: 0.7;
+}
+
+.shift-action-button:hover {
+  opacity: 1;
+}
+
+.employee-list {
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+
+.employee-list-item {
+  display: inline-block;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.add-shift-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: 2px dashed #e5e7eb;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.schedule-cell:hover .add-shift-button {
+  opacity: 1;
+}
+
+.add-shift-button:hover {
+  border-color: #6b7280;
+  color: #6b7280;
+}
+
+.absence-entry {
+  width: 100% !important;
+  left: 0 !important;
+} 
