@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import EmployeeView from './admin/EmployeeView';
-import ShiftView from './admin/ShiftView';
+import EmployeeView from './EmployeeView';
+import ShiftManagement from './shifts/ShiftManagement';
+import ChildrenManagement from './admin/ChildrenManagement';
 import NotificationView from './admin/NotificationView';
 
 function AdminArea({ 
@@ -43,6 +44,12 @@ function AdminArea({
           Schichttypen
         </button>
         <button
+          className={`tab-button ${activeTab === 'children' ? 'active' : ''}`}
+          onClick={() => setActiveTab('children')}
+        >
+          Kinder
+        </button>
+        <button
           className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
           onClick={() => setActiveTab('notifications')}
         >
@@ -61,10 +68,13 @@ function AdminArea({
           />
         )}
         {activeTab === 'shifts' && (
-          <ShiftView 
+          <ShiftManagement 
             shiftTypes={shiftTypes}
             setShiftTypes={setShiftTypes}
           />
+        )}
+        {activeTab === 'children' && (
+          <ChildrenManagement />
         )}
         {activeTab === 'notifications' && (
           <NotificationView 

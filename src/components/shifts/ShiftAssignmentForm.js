@@ -41,6 +41,20 @@ function ShiftAssignmentForm({
         return;
       }
 
+      // Prüfe, ob der Mitarbeiter die erforderlichen Qualifikationen hat
+      const employee = employees.find(e => e.id === parseInt(employeeId));
+      if (!employee) return;
+
+      const requiredQualifications = selectedShiftType?.requiredQualifications || [];
+      const missingQualifications = requiredQualifications.filter(
+        qual => !employee.qualifications?.includes(qual)
+      );
+
+      if (missingQualifications.length > 0) {
+        alert(`${employee.name} fehlen folgende erforderliche Qualifikationen für diese Schicht:\n${missingQualifications.join(', ')}`);
+        return;
+      }
+
       // Prüfe die Verfügbarkeit des Mitarbeiters
       const tempShift = {
         isCustom: false,
@@ -58,15 +72,14 @@ function ShiftAssignmentForm({
       );
 
       if (!availability.available) {
-        const employee = employees.find(e => e.id === parseInt(employeeId));
         if (availability.reason) {
-          alert(`${employee?.name} hat zu dieser Zeit ${availability.reason}.`);
+          alert(`${employee.name} hat zu dieser Zeit ${availability.reason}.`);
         } else {
           const conflictingShiftType = availability.conflictingShift.isCustom 
             ? null 
             : shiftTypes.find(t => t.id === availability.conflictingShift.shiftTypeId);
 
-          alert(`${employee?.name} ist bereits in einer anderen Schicht eingeteilt:\n` +
+          alert(`${employee.name} ist bereits in einer anderen Schicht eingeteilt:\n` +
             `${availability.conflictingShift.isCustom 
               ? availability.conflictingShift.customTitle 
               : conflictingShiftType?.name
@@ -174,6 +187,20 @@ function ShiftAssignmentForm({
     });
   };
 
+  // Filtere die Mitarbeiter basierend auf den erforderlichen Qualifikationen
+  const getFilteredEmployees = () => {
+    if (!shiftTypeId) return employees;
+    
+    const selectedShiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
+    if (!selectedShiftType?.requiredQualifications?.length) return employees;
+
+    return employees.filter(employee => 
+      selectedShiftType.requiredQualifications.every(
+        qual => employee.qualifications?.includes(qual)
+      )
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="shift-assignment-form">
       <div className="form-group">
@@ -198,37 +225,42 @@ function ShiftAssignmentForm({
 
       {entryType === 'shift' ? (
         <>
-      <div className="form-group">
-            <label className="form-label">Mitarbeiter</label>
-        <select 
-          className="form-select"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-        >
-              <option value="">Bitte wählen...</option>
-              {employees.map((employee) => (
-            <option key={employee.id} value={employee.id}>
-              {employee.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
+          <div className="form-group">
             <label className="form-label">Schicht</label>
-        <select 
-          className="form-select"
+            <select 
+              className="form-select"
               value={shiftTypeId}
-              onChange={(e) => setShiftTypeId(e.target.value)}
-        >
+              onChange={(e) => {
+                setShiftTypeId(e.target.value);
+                // Setze den Mitarbeiter zurück, wenn die neue Schicht andere Qualifikationen erfordert
+                setEmployeeId('');
+              }}
+            >
               <option value="">Bitte wählen...</option>
               {shiftTypes.map((shift) => (
                 <option key={shift.id} value={shift.id}>
                   {shift.name} ({shift.startTime} - {shift.endTime})
-            </option>
-          ))}
-        </select>
-      </div>
+                  {shift.requiredQualifications?.length > 0 && ` - Qualifikationen: ${shift.requiredQualifications.join(', ')}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Mitarbeiter</label>
+            <select 
+              className="form-select"
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+            >
+              <option value="">Bitte wählen...</option>
+              {getFilteredEmployees().map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </>
       ) : (
         <>
@@ -272,7 +304,9 @@ function ShiftAssignmentForm({
                     checked={customEmployeeIds.includes(employee.id)}
                     onChange={() => handleEmployeeToggle(employee.id)}
                   />
-                  <span className="employee-name">{employee.name}</span>
+                  <span className="employee-name">
+                    {employee.name}
+                  </span>
                 </label>
               ))}
             </div>
