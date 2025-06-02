@@ -17,16 +17,21 @@ import {
 // Memoized Shift Card Component
 const ShiftCard = memo(({ 
   shift, 
-      shiftType,
+  shiftType,
   employees, 
   isSelected, 
   isEditable, 
   onShiftClick, 
-  style 
+  style,
+  currentUser 
 }) => {
   const isCustom = shift.isCustom;
   const isAbsence = isCustom && (shift.type === 'vacation' || shift.type === 'sick');
-  const cardClassName = `shift-card ${isCustom ? `custom-entry shift-${shift.type}` : `shift-${shiftType?.color || 'gray'}`} ${isAbsence ? 'absence-entry' : ''} ${isSelected ? 'selected' : ''}`;
+  const isUserShift = currentUser && (
+    (isCustom && shift.customEmployeeIds?.includes(currentUser.id)) ||
+    (!isCustom && shift.employeeId === currentUser.id)
+  );
+  const cardClassName = `shift-card ${isCustom ? `custom-entry shift-${shift.type}` : `shift-${shiftType?.color || 'gray'}`} ${isAbsence ? 'absence-entry' : ''} ${isSelected ? 'selected' : ''} ${isUserShift ? 'user-shift' : ''}`;
 
   // Hilfsfunktion zum Formatieren der Mitarbeiternamen
   const getEmployeeNames = () => {
@@ -45,7 +50,8 @@ const ShiftCard = memo(({
     <div
       className={cardClassName}
       style={style}
-      onClick={isEditable ? onShiftClick : undefined}
+      onClick={(isEditable || isUserShift) ? onShiftClick : undefined}
+      title={isUserShift && !isEditable ? "Klicken Sie hier, um Details zu Ihrer Schicht zu sehen" : undefined}
     >
       <div className="shift-header">
         {isAbsence ? (
@@ -72,6 +78,11 @@ const ShiftCard = memo(({
             <div className="shift-employee">
               {getEmployeeNames()}
             </div>
+            {shift.tasks?.length > 0 && (
+              <div className="shift-notes">
+                <strong>Aufgaben:</strong> {shift.tasks.join(', ')}
+              </div>
+            )}
             {shift.notes && (
               <div className="shift-notes">{shift.notes}</div>
             )}
@@ -97,7 +108,8 @@ const ScheduleCell = memo(({
   isEditable,
   onShiftClick,
   onAddClick,
-  isFullWidth
+  isFullWidth,
+  currentUser
 }) => {
   return (
     <td className={`schedule-cell ${isFullWidth ? 'full-width' : ''}`}>
@@ -121,6 +133,7 @@ const ScheduleCell = memo(({
                   width: shift.width,
                   left: shift.left
                 }}
+                currentUser={currentUser}
               />
             );
           })}
@@ -136,7 +149,7 @@ const ScheduleCell = memo(({
   );
 });
 
-function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEditable = false }) {
+function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEditable = false, currentUser }) {
   const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
   const timeSlots = ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
                      '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
@@ -404,12 +417,16 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   // Memoized helper functions
   const handleShiftClick = useCallback((shift, day, time) => {
     setSelectedShiftId(shift.id);
-    if (isEditable) {
+    const isUserShift = currentUser && (
+      (shift.isCustom && shift.customEmployeeIds?.includes(currentUser.id)) ||
+      (!shift.isCustom && shift.employeeId === currentUser.id)
+    );
+    if (isEditable || isUserShift) {
       setCurrentShift(shift);
-    setModalData({ day, time });
-    setModalOpen(true);
+      setModalData({ day, time });
+      setModalOpen(true);
     }
-  }, [isEditable]);
+  }, [isEditable, currentUser]);
   
   const handleAddShift = useCallback((day, time) => {
     setModalData({ day, time });
@@ -549,9 +566,10 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       name: employee.name,
       shiftTypeId: parseInt(shiftTypeId),
       task: shiftType.name,
+      tasks: shiftType.tasks || [],
       type: shiftType.color,
-        notes,
-        isCustom: false
+      notes,
+      isCustom: false
     };
     }
     
@@ -885,6 +903,7 @@ const handlePdfExport = () => {
                     onShiftClick={handleShiftClick}
                     onAddClick={handleAddShift}
                     isFullWidth={!!selectedDay}
+                    currentUser={currentUser}
                   />
             ))}
           </tr>
@@ -945,6 +964,38 @@ const handlePdfExport = () => {
             )}
           </div>
       </Modal>
+      )}
+      {(!isEditable && modalOpen) && (
+        <Modal 
+          isOpen={modalOpen} 
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedShiftId(null);
+          }}
+          title="Schichtdetails"
+        >
+          <div className="modal-content">
+            <div className="shift-details">
+              <p><strong>Schichttyp:</strong> {currentShift?.isCustom ? currentShift.customTitle : shiftTypes.find(t => t.id === currentShift?.shiftTypeId)?.name}</p>
+              <p><strong>Datum:</strong> {modalData.day}</p>
+              <p><strong>Uhrzeit:</strong> {currentShift?.isCustom ? `${currentShift.customStartTime} - ${currentShift.customEndTime}` : modalData.time}</p>
+              {currentShift?.tasks?.length > 0 && (
+                <p><strong>Aufgaben:</strong> {currentShift.tasks.join(', ')}</p>
+              )}
+              {currentShift?.notes && (
+                <p><strong>Notizen:</strong> {currentShift.notes}</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="button secondary" onClick={() => {
+                setModalOpen(false);
+                setSelectedShiftId(null);
+              }}>
+                Schließen
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

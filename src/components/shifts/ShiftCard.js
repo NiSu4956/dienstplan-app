@@ -56,8 +56,15 @@ const ShiftCard = ({
       <div className="shift-header">
         <div className="shift-type">{shiftType?.name}</div>
         <div className="shift-employee">{shift.name}</div>
+        {shift.tasks?.length > 0 && (
+          <div className="shift-notes">
+            <strong>Aufgaben:</strong> {shift.tasks.join(', ')}
+          </div>
+        )}
         {shift.notes && (
-          <div className="shift-notes">{shift.notes}</div>
+          <div className="shift-notes">
+            <strong>Notizen:</strong> {shift.notes}
+          </div>
         )}
       </div>
     </div>

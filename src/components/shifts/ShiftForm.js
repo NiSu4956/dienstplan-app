@@ -26,8 +26,11 @@ function ShiftForm({ shift, onSave, onCancel }) {
     startTime: shift?.startTime || '07:00',
     endTime: shift?.endTime || '14:00',
     color: shift?.color?.replace('bg-', '').replace('-100', '') || 'blue',
-    requiredQualifications: shift?.requiredQualifications || []
+    requiredQualifications: shift?.requiredQualifications || [],
+    tasks: shift?.tasks || []
   });
+
+  const [newTask, setNewTask] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,6 +46,24 @@ function ShiftForm({ shift, onSave, onCancel }) {
       requiredQualifications: prev.requiredQualifications.includes(qualification)
         ? prev.requiredQualifications.filter(q => q !== qualification)
         : [...prev.requiredQualifications, qualification]
+    }));
+  };
+
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    
+    setFormData(prev => ({
+      ...prev,
+      tasks: [...prev.tasks, newTask.trim()]
+    }));
+    setNewTask('');
+  };
+
+  const handleRemoveTask = (taskToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      tasks: prev.tasks.filter(task => task !== taskToRemove)
     }));
   };
 
@@ -119,6 +140,40 @@ function ShiftForm({ shift, onSave, onCancel }) {
               <span className="qualification-name">{qualification}</span>
             </label>
           ))}
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Aufgaben</label>
+        <div className="task-list">
+          {formData.tasks.map((task, index) => (
+            <div key={index} className="task-item">
+              <span className="task-text">{task}</span>
+              <button
+                type="button"
+                className="button-icon"
+                onClick={() => handleRemoveTask(task)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="task-input-group">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            className="form-input"
+            placeholder="Neue Aufgabe eingeben..."
+          />
+          <button
+            type="button"
+            className="button"
+            onClick={handleAddTask}
+          >
+            +
+          </button>
         </div>
       </div>
 

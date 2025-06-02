@@ -97,7 +97,8 @@ function ShiftAssignmentForm({
         employeeId,
         shiftTypeId,
         notes,
-        isCustom: false
+        isCustom: false,
+        tasks: selectedShiftType?.tasks || []
       });
     } else {
       if (!customTitle || !customStartTime || !customEndTime) {

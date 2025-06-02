@@ -277,6 +277,7 @@ function AppRouter() {
                     scheduleData={scheduleData}
                     setScheduleData={setScheduleData}
                     isEditable={true}
+                    currentUser={currentUser}
                   />
                 ) : (
                   <WeekView 
@@ -285,6 +286,7 @@ function AppRouter() {
                     scheduleData={scheduleData}
                     setScheduleData={setScheduleData}
                     isEditable={false}
+                    currentUser={currentUser}
                   />
                 )
               ) : (
