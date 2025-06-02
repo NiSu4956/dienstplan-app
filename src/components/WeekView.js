@@ -427,7 +427,9 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         const dayShifts = Object.values(scheduleData[selectedWeek][day])
           .flat()
           .filter((shift, index, self) => 
-            index === self.findIndex(s => s.id === shift.id)
+            // Entferne Duplikate und filtere Urlaub/Krankheit aus
+            index === self.findIndex(s => s.id === shift.id) &&
+            !(shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick'))
           );
           
         if (selectedEmployee) {
@@ -838,6 +840,31 @@ const handlePdfExport = () => {
                   </th>
                 );
               })}
+        </tr>
+        <tr>
+          <th className="schedule-header time-column">Abwesenheit</th>
+          {(selectedDay ? [selectedDay] : days).map((day) => {
+            const absences = scheduleData[selectedWeek]?.[day]?.['07:00']?.filter(
+              shift => shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick')
+            ) || [];
+            
+            return (
+              <th key={day} className={`schedule-header ${selectedDay ? 'full-width' : ''}`}>
+                <div className="absence-row">
+                  {absences.map((absence, index) => (
+                    <div
+                      key={absence.id}
+                      className={`absence-badge ${absence.type === 'vacation' ? 'vacation' : 'sick'}`}
+                      onClick={() => handleShiftClick(absence, day, '07:00')}
+                    >
+                      {absence.type === 'vacation' ? '🏖️ ' : '🏥 '}
+                      {absence.name}
+                    </div>
+                  ))}
+                </div>
+              </th>
+            );
+          })}
         </tr>
       </thead>
       <tbody>

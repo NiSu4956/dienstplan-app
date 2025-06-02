@@ -444,4 +444,39 @@
 .current-day .day-date {
   color: #4f46e5;
   font-weight: 500;
+}
+
+/* Styles für die Abwesenheitszeile */
+.absence-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  min-height: 32px;
+}
+
+.absence-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.absence-badge:hover {
+  transform: scale(1.05);
+}
+
+.absence-badge.vacation {
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.absence-badge.sick {
+  background-color: #fee2e2;
+  border: 1px solid #ef4444;
+  color: #991b1b;
 } 
