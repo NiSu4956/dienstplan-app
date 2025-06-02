@@ -196,11 +196,10 @@
 }
 
 .absence-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 8px;
+  background-color: #e0e7ff !important;
+  color: #1e40af !important;
+  font-weight: 600 !important;
+  text-align: center !important;
 }
 
 .absence-type {
@@ -444,4 +443,160 @@
 .current-day .day-date {
   color: #4f46e5;
   font-weight: 500;
+}
+
+.absence-cell {
+  padding: 8px !important;
+  min-height: 40px;
+  vertical-align: middle !important;
+  background-color: #f5f3ff !important;
+  border: 1px solid #e5e7eb !important;
+  text-align: center !important;
+}
+
+.absence-cell.has-absences {
+  background: repeating-linear-gradient(
+    45deg,
+    #e0e7ff,
+    #e0e7ff 10px,
+    #eef2ff 10px,
+    #eef2ff 20px
+  ) !important;
+}
+
+.absence-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin: 2px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.absence-badge.vacation {
+  background-color: #dbeafe !important;
+  border: 1px solid #3b82f6;
+  color: #1e40af;
+}
+
+.absence-badge.sick {
+  background-color: #fee2e2 !important;
+  border: 1px solid #ef4444;
+  color: #991b1b;
+}
+
+.absence-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Abwesenheitszeile Styling */
+.schedule-table thead tr:nth-child(2) td,
+.schedule-table thead tr:nth-child(2) th {
+  background-color: #e0e7ff !important;
+  border-bottom: 1px solid #c7d2fe !important;
+  border-top: 1px solid #c7d2fe !important;
+}
+
+.absence-cell {
+  padding: 8px !important;
+  min-height: 40px;
+  vertical-align: middle !important;
+}
+
+/* Gestreifte Musterung für Zellen mit Einträgen */
+.absence-cell:not(:empty) {
+  background: repeating-linear-gradient(
+    45deg,
+    #e0e7ff,
+    #e0e7ff 10px,
+    #eef2ff 10px,
+    #eef2ff 20px
+  );
+}
+
+.absence-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 2px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.absence-badge.vacation {
+  background-color: var(--vacation-bg);
+  border: 1px solid var(--blue-border);
+  color: #1e40af;
+}
+
+.absence-badge.sick {
+  background-color: var(--sick-bg);
+  border: 1px solid var(--red-border);
+  color: #991b1b;
+}
+
+/* Hover-Effekt für die Badges */
+.absence-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Spezifisches Styling für die Abwesenheitszeile */
+.schedule-table thead tr:nth-child(2) td,
+.schedule-table thead tr:nth-child(2) th {
+  background-color: #e0e7ff !important;
+  border-bottom: 1px solid #c7d2fe !important;
+  border-top: 1px solid #c7d2fe !important;
+}
+
+.absence-cell {
+  padding: 8px !important;
+  min-height: 40px;
+  vertical-align: middle !important;
+}
+
+/* Gestreifte Musterung nur für Abwesenheitszellen mit Inhalt */
+.absence-cell:not(:empty) {
+  background: repeating-linear-gradient(
+    45deg,
+    #e0e7ff,
+    #e0e7ff 10px,
+    #eef2ff 10px,
+    #eef2ff 20px
+  ) !important;
+}
+
+.absence-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin: 2px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.absence-badge.vacation {
+  background-color: #dbeafe !important;
+  border: 1px solid #3b82f6;
+  color: #1e40af;
+}
+
+.absence-badge.sick {
+  background-color: #fee2e2 !important;
+  border: 1px solid #ef4444;
+  color: #991b1b;
+}
+
+.absence-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 } 

@@ -121,9 +121,23 @@ export const organizeOverlappingShifts = (shifts, shiftTypes, timeSlots) => {
 
 // Hilfsfunktion zur Prüfung von Schichtüberlappungen für einen Mitarbeiter
 export const checkEmployeeAvailability = (employeeId, newShift, currentShiftId, scheduleData, selectedWeek, day, shiftTypes) => {
-  if (!scheduleData[selectedWeek]?.[day]) return { available: true };
-  
-  // Startzeit und Endzeit der neuen Schicht
+  if (!scheduleData || !selectedWeek || !scheduleData[selectedWeek] || !scheduleData[selectedWeek][day]) {
+    return { available: true };
+  }
+
+  const existingShifts = [];
+  const dayData = scheduleData[selectedWeek][day];
+
+  // Sammle alle Schichten für diesen Tag
+  Object.values(dayData).forEach(shifts => {
+    shifts.forEach(shift => {
+      if (shift.id !== currentShiftId) {
+        existingShifts.push(shift);
+      }
+    });
+  });
+
+  // Bestimme Start- und Endzeit der neuen Schicht
   let newStartMinutes, newEndMinutes;
   
   if (newShift.isCustom) {
@@ -141,17 +155,23 @@ export const checkEmployeeAvailability = (employeeId, newShift, currentShiftId, 
     newEndMinutes += 24 * 60;
   }
 
-  // Überprüfe alle existierenden Schichten des Tages
-  const existingShifts = Object.values(scheduleData[selectedWeek][day])
-    .flat()
-    .filter(shift => shift.id !== currentShiftId);
-
+  // Überprüfe Überschneidungen mit existierenden Schichten
   for (const shift of existingShifts) {
     const isEmployeeInShift = shift.isCustom
-      ? shift.customEmployeeIds?.includes(employeeId)
-      : shift.employeeId === employeeId;
+      ? shift.customEmployeeIds?.includes(parseInt(employeeId))
+      : parseInt(shift.employeeId) === parseInt(employeeId);
 
     if (!isEmployeeInShift) continue;
+
+    // Wenn der Mitarbeiter bereits Urlaub oder krank ist, ist er nicht verfügbar
+    if (shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick')) {
+      return {
+        available: false,
+        conflictingShift: shift,
+        employee: { id: employeeId },
+        reason: shift.type === 'vacation' ? 'Urlaub' : 'Krankmeldung'
+      };
+    }
 
     let existingStartMinutes, existingEndMinutes;
     
@@ -177,7 +197,8 @@ export const checkEmployeeAvailability = (employeeId, newShift, currentShiftId, 
     ) {
       return {
         available: false,
-        conflictingShift: shift
+        conflictingShift: shift,
+        employee: { id: employeeId }
       };
     }
   }

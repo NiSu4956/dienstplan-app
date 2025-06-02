@@ -3,6 +3,7 @@ import Modal from './common/Modal';
 import ShiftAssignmentForm from './shifts/ShiftAssignmentForm';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import '../styles/WeekView.css';
 import { 
   organizeOverlappingShifts, 
   getTimeInMinutes, 
@@ -758,6 +759,17 @@ const handlePdfExport = () => {
   doc.save(`Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`);
 };
 
+  // Neue Funktion zur Extraktion von Abwesenheiten
+  const getAbsencesForDay = (day) => {
+    if (!scheduleData[selectedWeek] || !scheduleData[selectedWeek][day]) return [];
+    
+    const allShifts = Object.values(scheduleData[selectedWeek][day])
+      .flat()
+      .filter(shift => shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick'));
+    
+    return allShifts;
+  };
+
   // Render
   return (
     <div className="card">
@@ -839,6 +851,25 @@ const handlePdfExport = () => {
                 );
               })}
         </tr>
+        {/* Neue Zeile für Abwesenheiten */}
+        <tr>
+          <td className="schedule-header time-column absence-header">Abwesenheiten</td>
+          {(selectedDay ? [selectedDay] : days).map((day) => {
+            const absences = getAbsencesForDay(day);
+            return (
+              <td key={day} className={`schedule-header absence-cell ${absences.length > 0 ? 'has-absences' : ''}`}>
+                {absences.map((absence, index) => (
+                  <div 
+                    key={index} 
+                    className={`absence-badge ${absence.type === 'vacation' ? 'vacation' : 'sick'}`}
+                  >
+                    {absence.customTitle} - {absence.name}
+                  </div>
+                ))}
+              </td>
+            );
+          })}
+        </tr>
       </thead>
       <tbody>
         {timeSlots.map((time, index) => (
@@ -850,7 +881,7 @@ const handlePdfExport = () => {
                     day={day}
                     time={time}
                     isFirstRow={index === 0}
-                    shifts={organizedShifts[day]}
+                    shifts={organizedShifts[day]?.filter(shift => !shift.isCustom || (shift.isCustom && shift.type !== 'vacation' && shift.type !== 'sick'))}
                     shiftTypes={shiftTypes}
                     employees={employees}
                     selectedShiftId={selectedShiftId}
@@ -880,17 +911,19 @@ const handlePdfExport = () => {
           ) : "Schicht hinzufügen"}
         >
           <div className="modal-content">
-        <ShiftAssignmentForm 
-          date={modalData.day}
-          time={modalData.time}
-          employees={employees}
-          shiftTypes={shiftTypes}
-          existingShift={currentShift}
-          onSave={handleSaveShift}
+            <ShiftAssignmentForm 
+              date={modalData.day}
+              time={modalData.time}
+              employees={employees}
+              shiftTypes={shiftTypes}
+              existingShift={currentShift}
+              onSave={handleSaveShift}
               onCancel={() => {
                 setModalOpen(false);
                 setSelectedShiftId(null);
               }}
+              scheduleData={scheduleData}
+              selectedWeek={selectedWeek}
             />
             {currentShift && (
               <div className="modal-footer">

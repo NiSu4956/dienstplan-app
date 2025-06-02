@@ -1,7 +1,18 @@
 // src/components/shifts/ShiftAssignmentForm.js
 import React, { useState } from 'react';
+import { checkEmployeeAvailability } from '../../utils/shiftUtils';
 
-function ShiftAssignmentForm({ date, time, employees, shiftTypes, existingShift, onSave, onCancel }) {
+function ShiftAssignmentForm({ 
+  date, 
+  time, 
+  employees, 
+  shiftTypes, 
+  existingShift, 
+  onSave, 
+  onCancel,
+  scheduleData,  // Neue Prop
+  selectedWeek   // Neue Prop
+}) {
   const [entryType, setEntryType] = useState(existingShift?.isCustom ? 'custom' : 'shift');
   const [employeeId, setEmployeeId] = useState(existingShift?.employeeId || '');
   const [shiftTypeId, setShiftTypeId] = useState(existingShift?.shiftTypeId || '');
@@ -22,6 +33,50 @@ function ShiftAssignmentForm({ date, time, employees, shiftTypes, existingShift,
         alert('Bitte wählen Sie einen Mitarbeiter und eine Schicht aus.');
         return;
       }
+
+      // Prüfe, ob es sich um eine Wochenendschicht handelt
+      const selectedShiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
+      if (selectedShiftType?.name === 'Wochenende' && !['Samstag', 'Sonntag'].includes(date)) {
+        alert('Die Wochenendschicht kann nur für Samstag oder Sonntag eingeplant werden.');
+        return;
+      }
+
+      // Prüfe die Verfügbarkeit des Mitarbeiters
+      const tempShift = {
+        isCustom: false,
+        shiftTypeId: parseInt(shiftTypeId)
+      };
+
+      const availability = checkEmployeeAvailability(
+        parseInt(employeeId),
+        tempShift,
+        existingShift?.id,
+        scheduleData,
+        selectedWeek,
+        date,
+        shiftTypes
+      );
+
+      if (!availability.available) {
+        const employee = employees.find(e => e.id === parseInt(employeeId));
+        if (availability.reason) {
+          alert(`${employee?.name} hat zu dieser Zeit ${availability.reason}.`);
+        } else {
+          const conflictingShiftType = availability.conflictingShift.isCustom 
+            ? null 
+            : shiftTypes.find(t => t.id === availability.conflictingShift.shiftTypeId);
+
+          alert(`${employee?.name} ist bereits in einer anderen Schicht eingeteilt:\n` +
+            `${availability.conflictingShift.isCustom 
+              ? availability.conflictingShift.customTitle 
+              : conflictingShiftType?.name
+            } (${availability.conflictingShift.isCustom 
+              ? `${availability.conflictingShift.customStartTime} - ${availability.conflictingShift.customEndTime}`
+              : `${conflictingShiftType?.startTime} - ${conflictingShiftType?.endTime}`
+            })`);
+        }
+        return;
+      }
       
       onSave({
         date,
@@ -36,9 +91,62 @@ function ShiftAssignmentForm({ date, time, employees, shiftTypes, existingShift,
         alert('Bitte füllen Sie alle Pflichtfelder aus.');
         return;
       }
+
+      // Prüfe für jeden ausgewählten Mitarbeiter, ob er verfügbar ist
+      for (const empId of customEmployeeIds) {
+        const tempShift = {
+          isCustom: true,
+          customStartTime,
+          customEndTime,
+          type: customColor === 'vacation' ? 'vacation' : (customColor === 'sick' ? 'sick' : undefined)
+        };
+        
+        const availability = checkEmployeeAvailability(
+          parseInt(empId),
+          tempShift,
+          existingShift?.id,
+          scheduleData,
+          selectedWeek,
+          date,
+          shiftTypes
+        );
+
+        if (!availability.available) {
+          const employee = employees.find(e => e.id === parseInt(empId));
+          if (availability.reason) {
+            alert(`${employee?.name} hat zu dieser Zeit bereits ${availability.reason}.`);
+          } else {
+            const conflictingShiftType = availability.conflictingShift.isCustom 
+              ? null 
+              : shiftTypes.find(t => t.id === availability.conflictingShift.shiftTypeId);
+
+            // Angepasste Fehlermeldung für Urlaubs- oder Krankheitseinträge
+            if (customColor === 'vacation' || customColor === 'sick') {
+              alert(`${employee?.name} ist zu dieser Zeit bereits in einer Schicht eingeteilt:\n` +
+                `${availability.conflictingShift.isCustom 
+                  ? availability.conflictingShift.customTitle 
+                  : conflictingShiftType?.name
+                } (${availability.conflictingShift.isCustom 
+                  ? `${availability.conflictingShift.customStartTime} - ${availability.conflictingShift.customEndTime}`
+                  : `${conflictingShiftType?.startTime} - ${conflictingShiftType?.endTime}`
+                })\n\nBitte entfernen Sie zuerst die Schichtzuweisung, bevor Sie ${customColor === 'vacation' ? 'Urlaub' : 'eine Krankmeldung'} eintragen.`);
+            } else {
+              alert(`${employee?.name} ist bereits in einer anderen Schicht eingeteilt:\n` +
+                `${availability.conflictingShift.isCustom 
+                  ? availability.conflictingShift.customTitle 
+                  : conflictingShiftType?.name
+                } (${availability.conflictingShift.isCustom 
+                  ? `${availability.conflictingShift.customStartTime} - ${availability.conflictingShift.customEndTime}`
+                  : `${conflictingShiftType?.startTime} - ${conflictingShiftType?.endTime}`
+                })`);
+            }
+          }
+          return;
+        }
+      }
       
-    onSave({
-      date,
+      onSave({
+        date,
         time: customStartTime,
         isCustom: true,
         customTitle,
@@ -47,7 +155,7 @@ function ShiftAssignmentForm({ date, time, employees, shiftTypes, existingShift,
         customColor,
         customEmployeeIds,
         notes,
-        // Füge den Namen des ersten Mitarbeiters als Hauptname hinzu
+        type: customColor === 'vacation' ? 'vacation' : (customColor === 'sick' ? 'sick' : customColor),
         name: customEmployeeIds.length > 0 
           ? employees.find(e => e.id === parseInt(customEmployeeIds[0]))?.name 
           : ''

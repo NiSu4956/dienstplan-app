@@ -1,35 +1,22 @@
 import React, { useState } from 'react';
 import Modal from './common/Modal';
+import RequestForm from './requests/RequestForm';
 
-function EmployeePortal({ currentUser, requests, onSubmitRequest }) {
+function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, shiftTypes }) {
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    type: 'vacation',
-    startDate: '',
-    endDate: '',
-    notes: ''
-  });
+  const [formType, setFormType] = useState('vacation');
 
   const userRequests = requests.filter(req => req.employeeName === currentUser.name);
   const pendingRequests = userRequests.filter(req => req.status === 'pending');
   const processedRequests = userRequests.filter(req => req.status !== 'pending');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
+  const handleSubmitRequest = (formData) => {
     onSubmitRequest({
       ...formData,
-      employeeName: currentUser.name,
       submittedAt: new Date().toISOString()
     });
     
     setShowModal(false);
-    setFormData({
-      type: 'vacation',
-      startDate: '',
-      endDate: '',
-      notes: ''
-    });
   };
 
   const formatDate = (dateString) => {
@@ -71,9 +58,26 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest }) {
     <div className="employee-portal">
       <div className="portal-header">
         <h2>Mitarbeiterportal - {currentUser.name}</h2>
-        <button className="button" onClick={() => setShowModal(true)}>
-          Antrag stellen
-        </button>
+        <div className="portal-actions">
+          <button 
+            className="button" 
+            onClick={() => {
+              setFormType('vacation');
+              setShowModal(true);
+            }}
+          >
+            Urlaub beantragen
+          </button>
+          <button 
+            className="button" 
+            onClick={() => {
+              setFormType('sick');
+              setShowModal(true);
+            }}
+          >
+            Krankmeldung einreichen
+          </button>
+        </div>
       </div>
 
       <div className="requests-section">
@@ -154,62 +158,16 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest }) {
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title="Neuer Antrag"
+        title={formType === 'vacation' ? 'Urlaub beantragen' : 'Krankmeldung einreichen'}
       >
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Art des Antrags</label>
-            <select
-              value={formData.type}
-              onChange={e => setFormData(prev => ({ ...prev, type: e.target.value }))}
-              className="form-select"
-            >
-              <option value="vacation">Urlaub</option>
-              <option value="sick">Krankmeldung</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Von</label>
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={e => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Bis</label>
-            <input
-              type="date"
-              value={formData.endDate}
-              onChange={e => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Anmerkungen (optional)</label>
-            <textarea
-              value={formData.notes}
-              onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              className="form-input"
-              rows="3"
-            />
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" className="button secondary" onClick={() => setShowModal(false)}>
-              Abbrechen
-            </button>
-            <button type="submit" className="button">
-              Absenden
-            </button>
-          </div>
-        </form>
+        <RequestForm
+          type={formType}
+          onSubmit={handleSubmitRequest}
+          onCancel={() => setShowModal(false)}
+          currentUser={currentUser}
+          scheduleData={scheduleData}
+          shiftTypes={shiftTypes}
+        />
       </Modal>
     </div>
   );

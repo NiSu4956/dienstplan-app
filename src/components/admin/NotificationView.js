@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
 import Modal from '../common/Modal';
+import { validateRequest } from '../../utils/requestHandler';
 
-function NotificationView({ requests, onApproveRequest, onRejectRequest }) {
+function NotificationView({ requests, onApproveRequest, onRejectRequest, scheduleData, shiftTypes, employees }) {
   const [showModal, setShowModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [adminComment, setAdminComment] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const pendingRequests = requests.filter(req => req.status === 'pending');
   const processedRequests = requests.filter(req => req.status !== 'pending');
 
   const handleApprove = () => {
+    // Validiere den Request vor der Genehmigung
+    const validation = validateRequest(selectedRequest, scheduleData, shiftTypes, employees);
+    
+    if (!validation.isValid) {
+      setValidationError(validation.message);
+      return;
+    }
+
+    setValidationError('');
     onApproveRequest({ ...selectedRequest, adminComment });
     handleCloseModal();
   };
@@ -22,6 +33,7 @@ function NotificationView({ requests, onApproveRequest, onRejectRequest }) {
   const handleOpenModal = (request) => {
     setSelectedRequest(request);
     setAdminComment('');
+    setValidationError('');
     setShowModal(true);
   };
 
@@ -29,6 +41,7 @@ function NotificationView({ requests, onApproveRequest, onRejectRequest }) {
     setShowModal(false);
     setSelectedRequest(null);
     setAdminComment('');
+    setValidationError('');
   };
 
   const formatDate = (dateString) => {
@@ -136,6 +149,12 @@ function NotificationView({ requests, onApproveRequest, onRejectRequest }) {
             placeholder="Fügen Sie hier einen Kommentar hinzu..."
           />
         </div>
+
+        {validationError && (
+          <div className="error-message">
+            {validationError}
+          </div>
+        )}
 
         <div className="modal-footer">
           <button 

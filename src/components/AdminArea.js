@@ -10,7 +10,8 @@ function AdminArea({
   setShiftTypes, 
   requests,
   onApproveRequest,
-  onRejectRequest
+  onRejectRequest,
+  scheduleData
 }) {
   const [activeTab, setActiveTab] = useState('employees');
   const pendingRequests = requests.filter(req => req.status === 'pending');
@@ -70,6 +71,9 @@ function AdminArea({
             requests={requests}
             onApproveRequest={onApproveRequest}
             onRejectRequest={onRejectRequest}
+            scheduleData={scheduleData}
+            shiftTypes={shiftTypes}
+            employees={employees}
           />
         )}
       </div>
