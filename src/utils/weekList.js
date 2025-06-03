@@ -3,13 +3,11 @@ export const generateWeekList = (startYear = 2025, numberOfYears = 4) => {
   const weeks = [];
   
   for (let year = startYear; year < startYear + numberOfYears; year++) {
-    // Finde den ersten Montag des Jahres
     const firstDay = new Date(year, 0, 1);
     const dayOfWeek = firstDay.getDay();
     const daysToAdd = dayOfWeek <= 1 ? 1 - dayOfWeek : 8 - dayOfWeek;
     firstDay.setDate(firstDay.getDate() + daysToAdd);
 
-    // Generiere Wochen für das Jahr
     let currentDate = new Date(firstDay);
     let weekNumber = 1;
 
@@ -56,7 +54,6 @@ export const getCurrentWeek = (weekList) => {
   const today = new Date();
   const currentYear = today.getFullYear();
   
-  // Finde die aktuelle Kalenderwoche
   const currentWeek = weekList.find(week => {
     const match = week.match(/\((\d{2}\.\d{2})\s*-\s*\d{2}\.\d{2}\.(\d{4})\)/);
     if (!match) return false;

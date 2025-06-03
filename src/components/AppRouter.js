@@ -1,13 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, Link, useLocation } from 'react-router-dom';
 import WeekView from './WeekView';
 import EmployeePortal from './EmployeePortal';
 import AdminArea from './AdminArea';
 import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
-import { validateRequest, handleRequestApproval } from '../utils/requestHandler';
+import { validateRequest } from '../utils/requestHandler';
 
-function Navigation({ currentUser, onLogout }) {
+const USER_STORAGE_KEY = 'currentUser';
+const DEFAULT_TIME_SLOT = '07:00';
+
+const ROLES = {
+  ADMIN: 'admin'
+};
+
+const REQUEST_TYPES = {
+  VACATION: 'vacation',
+  SICK: 'sick'
+};
+
+// Memoized initial data
+const INITIAL_SCHEDULE_DATA = {
+  'KW 21 (19.05 - 25.05.2025)': {
+    'Montag': {
+      '7:00': [{ 
+        id: 1, 
+        employeeId: 1, 
+        name: 'Sabine', 
+        task: 'Frühdienst', 
+        type: 'blue',
+        shiftTypeId: 1,
+        notes: ''
+      }]
+    }
+  }
+};
+
+const INITIAL_EMPLOYEES = [
+  { id: 1, name: 'Sabine', role: 'Vollzeit', qualifications: ['WG1', 'WG2', 'Nachtdienst'] },
+  { id: 2, name: 'Manu', role: 'Vollzeit', qualifications: ['WG1', 'Kochen'] },
+  { id: 3, name: 'Levin', role: 'Teilzeit', qualifications: ['Schule', 'Freizeitaktivitäten'] },
+  { id: 4, name: 'CK', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'] },
+  { id: 5, name: 'Nelli', role: 'Teilzeit', qualifications: ['Kochen', 'WG1'] },
+  { id: 6, name: 'PD', role: ROLES.ADMIN, qualifications: ['Management', 'Notfall'] },
+  { id: 7, name: 'Eva', role: 'Teilzeit', qualifications: ['WG1', 'Nachmittagsprogramm'] },
+  { id: 8, name: 'Fabi', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'] },
+  { id: 9, name: 'Daniel', role: 'Teilzeit', qualifications: ['Nachmittagsprogramm'] },
+  { id: 10, name: 'Admin', role: ROLES.ADMIN, qualifications: ['Administration'] }
+];
+
+const INITIAL_SHIFT_TYPES = [
+  { id: 1, name: 'Frühdienst', startTime: '07:00', endTime: '14:00', color: 'blue' },
+  { id: 2, name: 'Tagesdienst', startTime: '09:00', endTime: '17:00', color: 'green' },
+  { id: 3, name: 'Spätdienst', startTime: '14:00', endTime: '21:00', color: 'purple' },
+  { id: 4, name: 'Nachtdienst', startTime: '21:00', endTime: '07:00', color: 'gray' },
+  { id: 5, name: 'Kochen', startTime: '11:00', endTime: '14:00', color: 'red' },
+  { id: 6, name: 'Wochenende', startTime: '09:00', endTime: '21:00', color: 'yellow' }
+];
+
+const DAYS_OF_WEEK = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+
+// Memoized Navigation component
+const Navigation = memo(({ currentUser, onLogout }) => {
   const location = useLocation();
   
   return (
@@ -25,7 +79,7 @@ function Navigation({ currentUser, onLogout }) {
               Dienstplan
             </Link>
           </li>
-          {currentUser?.role === 'admin' && (
+          {currentUser?.role === ROLES.ADMIN && (
             <li>
               <Link 
                 to="/admin" 
@@ -37,7 +91,7 @@ function Navigation({ currentUser, onLogout }) {
           )}
           {currentUser ? (
             <>
-              {currentUser.role !== 'admin' && (
+              {currentUser.role !== ROLES.ADMIN && (
                 <li>
                   <Link 
                     to="/portal" 
@@ -67,73 +121,49 @@ function Navigation({ currentUser, onLogout }) {
       </div>
     </nav>
   );
-}
+});
+
+// Cache for date calculations
+const dateCache = new Map();
 
 function AppRouter() {
   const [currentUser, setCurrentUser] = useState(null);
   const [requests, setRequests] = useState([]);
-  const [scheduleData, setScheduleData] = useState({
-    'KW 21 (19.05 - 25.05.2025)': {
-      'Montag': {
-        '7:00': [{ 
-          id: 1, 
-          employeeId: 1, 
-          name: 'Sabine', 
-          task: 'Frühdienst', 
-          type: 'blue',
-          shiftTypeId: 1,
-          notes: ''
-        }]
-      }
-    }
-  });
-  
-  // Mitarbeiter-Daten
-  const [employees, setEmployees] = useState([
-    { id: 1, name: 'Sabine', role: 'Vollzeit', qualifications: ['WG1', 'WG2', 'Nachtdienst'] },
-    { id: 2, name: 'Manu', role: 'Vollzeit', qualifications: ['WG1', 'Kochen'] },
-    { id: 3, name: 'Levin', role: 'Teilzeit', qualifications: ['Schule', 'Freizeitaktivitäten'] },
-    { id: 4, name: 'CK', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'] },
-    { id: 5, name: 'Nelli', role: 'Teilzeit', qualifications: ['Kochen', 'WG1'] },
-    { id: 6, name: 'PD', role: 'admin', qualifications: ['Management', 'Notfall'] },
-    { id: 7, name: 'Eva', role: 'Teilzeit', qualifications: ['WG1', 'Nachmittagsprogramm'] },
-    { id: 8, name: 'Fabi', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'] },
-    { id: 9, name: 'Daniel', role: 'Teilzeit', qualifications: ['Nachmittagsprogramm'] },
-    { id: 10, name: 'Admin', role: 'admin', qualifications: ['Administration'] }
-  ]);
+  const [scheduleData, setScheduleData] = useState(INITIAL_SCHEDULE_DATA);
+  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
+  const [shiftTypes, setShiftTypes] = useState(INITIAL_SHIFT_TYPES);
 
-  // Schichttypen-Daten
-  const [shiftTypes, setShiftTypes] = useState([
-    { id: 1, name: 'Frühdienst', startTime: '07:00', endTime: '14:00', color: 'blue' },
-    { id: 2, name: 'Tagesdienst', startTime: '09:00', endTime: '17:00', color: 'green' },
-    { id: 3, name: 'Spätdienst', startTime: '14:00', endTime: '21:00', color: 'purple' },
-    { id: 4, name: 'Nachtdienst', startTime: '21:00', endTime: '07:00', color: 'gray' },
-    { id: 5, name: 'Kochen', startTime: '11:00', endTime: '14:00', color: 'red' },
-    { id: 6, name: 'Wochenende', startTime: '09:00', endTime: '21:00', color: 'yellow' }
-  ]);
-  
-  // Login-Handler
-  const handleLogin = (employee) => {
-    setCurrentUser(employee);
-    // Optional: Speichere den Login-Status im localStorage
-    localStorage.setItem('currentUser', JSON.stringify(employee));
-  };
-
-  // Logout-Handler
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
-  };
-
-  // Prüfe beim Start, ob ein Benutzer im localStorage gespeichert ist
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
+    const savedUser = localStorage.getItem(USER_STORAGE_KEY);
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
     }
   }, []);
 
-  const handleSubmitRequest = (newRequest) => {
+  const handleLogin = useCallback((employee) => {
+    setCurrentUser(employee);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(employee));
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setCurrentUser(null);
+    localStorage.removeItem(USER_STORAGE_KEY);
+  }, []);
+
+  const createCustomShift = useCallback((request, employee) => ({
+    id: Date.now() + Math.random(),
+    isCustom: true,
+    customTitle: request.type === REQUEST_TYPES.VACATION ? 'Urlaub' : 'Krank',
+    customStartTime: '00:00',
+    customEndTime: '23:59',
+    customColor: request.type === REQUEST_TYPES.VACATION ? 'vacation' : 'sick',
+    customEmployeeIds: [employee.id],
+    notes: request.adminComment || request.notes || '',
+    name: employee.name,
+    type: request.type === REQUEST_TYPES.VACATION ? REQUEST_TYPES.VACATION : REQUEST_TYPES.SICK
+  }), []);
+
+  const handleSubmitRequest = useCallback((newRequest) => {
     const validation = validateRequest(newRequest, scheduleData);
     
     if (!validation.isValid) {
@@ -148,90 +178,71 @@ function AppRouter() {
       timestamp: new Date().toISOString(),
       employeeName: currentUser.name
     }]);
-  };
+  }, [currentUser, scheduleData]);
 
-  const handleApproveRequest = (request) => {
-    // Aktualisiere den Request-Status
+  const updateRequestStatus = useCallback((request, status) => {
     setRequests(prev => prev.map(r => 
       r.id === request.id ? { 
         ...r, 
-        status: 'approved',
+        status,
         adminComment: request.adminComment 
       } : r
     ));
+  }, []);
 
-    // Erstelle einen neuen Schichteintrag für den genehmigten Antrag
+  const handleApproveRequest = useCallback((request) => {
+    updateRequestStatus(request, 'approved');
+
     const startDate = new Date(request.startDate);
     const endDate = new Date(request.endDate);
     const employee = employees.find(e => e.name === request.employeeName);
 
     if (!employee) return;
 
-    // Für jeden Tag im Zeitraum einen Eintrag erstellen
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const weekKey = getWeekKey(currentDate);
       const dayName = getDayName(currentDate);
-      
-      // Erstelle den Schichteintrag
-      const newShift = {
-        id: Date.now() + Math.random(), // Eindeutige ID
-        isCustom: true,
-        customTitle: request.type === 'vacation' ? 'Urlaub' : 'Krank',
-        customStartTime: '00:00',
-        customEndTime: '23:59',
-        customColor: request.type === 'vacation' ? 'vacation' : 'sick',
-        customEmployeeIds: [employee.id],
-        notes: request.adminComment || request.notes || '',
-        name: employee.name,
-        type: request.type === 'vacation' ? 'vacation' : 'sick'
-      };
+      const newShift = createCustomShift(request, employee);
 
-      // Füge den Eintrag zum Schedule hinzu
       setScheduleData(prev => {
         const newData = { ...prev };
         if (!newData[weekKey]) newData[weekKey] = {};
         if (!newData[weekKey][dayName]) newData[weekKey][dayName] = {};
-        if (!newData[weekKey][dayName]['07:00']) newData[weekKey][dayName]['07:00'] = [];
+        if (!newData[weekKey][dayName][DEFAULT_TIME_SLOT]) newData[weekKey][dayName][DEFAULT_TIME_SLOT] = [];
         
-        // Prüfe, ob bereits ein Eintrag für diesen Tag existiert
-        const existingEntryIndex = newData[weekKey][dayName]['07:00']
+        const existingEntryIndex = newData[weekKey][dayName][DEFAULT_TIME_SLOT]
           .findIndex(entry => entry.customEmployeeIds?.includes(employee.id));
         
         if (existingEntryIndex >= 0) {
-          // Aktualisiere den bestehenden Eintrag
-          newData[weekKey][dayName]['07:00'][existingEntryIndex] = newShift;
+          newData[weekKey][dayName][DEFAULT_TIME_SLOT][existingEntryIndex] = newShift;
         } else {
-          // Füge einen neuen Eintrag hinzu
-          newData[weekKey][dayName]['07:00'].push(newShift);
+          newData[weekKey][dayName][DEFAULT_TIME_SLOT].push(newShift);
         }
         
         return newData;
       });
 
-      // Gehe zum nächsten Tag
       currentDate.setDate(currentDate.getDate() + 1);
     }
-  };
+  }, [employees, createCustomShift, updateRequestStatus]);
 
-  const handleRejectRequest = (request) => {
-    setRequests(prev => prev.map(r => 
-      r.id === request.id ? { 
-        ...r, 
-        status: 'rejected',
-        adminComment: request.adminComment 
-      } : r
-    ));
-  };
+  const handleRejectRequest = useCallback((request) => {
+    updateRequestStatus(request, 'rejected');
+  }, [updateRequestStatus]);
 
-  // Hilfsfunktion: Ermittelt den Wochenschlüssel für ein Datum
-  const getWeekKey = (date) => {
+  const getWeekKey = useCallback((date) => {
+    const dateString = date.toISOString();
+    if (dateCache.has(dateString)) {
+      return dateCache.get(dateString);
+    }
+
     const weekNumber = getWeekNumber(date);
     const year = date.getFullYear();
     const startDate = new Date(date);
-    startDate.setDate(date.getDate() - date.getDay() + 1); // Montag
+    startDate.setDate(date.getDate() - date.getDay() + 1);
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6); // Sonntag
+    endDate.setDate(startDate.getDate() + 6);
 
     const formatDate = (d) => {
       const day = d.getDate().toString().padStart(2, '0');
@@ -239,23 +250,41 @@ function AppRouter() {
       return `${day}.${month}`;
     };
 
-    return `KW ${weekNumber} (${formatDate(startDate)} - ${formatDate(endDate)}.${year})`;
-  };
+    const result = `KW ${weekNumber} (${formatDate(startDate)} - ${formatDate(endDate)}.${year})`;
+    dateCache.set(dateString, result);
+    return result;
+  }, []);
 
-  // Hilfsfunktion: Ermittelt die Kalenderwoche
-  const getWeekNumber = (date) => {
+  const getWeekNumber = useCallback((date) => {
+    const dateString = date.toISOString();
+    const cacheKey = `week_${dateString}`;
+    
+    if (dateCache.has(cacheKey)) {
+      return dateCache.get(cacheKey);
+    }
+
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  };
+    const result = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    
+    dateCache.set(cacheKey, result);
+    return result;
+  }, []);
 
-  // Hilfsfunktion: Ermittelt den deutschen Wochentag
-  const getDayName = (date) => {
-    const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-    return days[date.getDay()];
-  };
+  const getDayName = useCallback((date) => DAYS_OF_WEEK[date.getDay()], []);
+
+  const renderWeekView = useCallback((isEditable = false) => (
+    <WeekView 
+      employees={employees}
+      shiftTypes={shiftTypes}
+      scheduleData={scheduleData}
+      setScheduleData={setScheduleData}
+      isEditable={isEditable}
+      currentUser={currentUser}
+    />
+  ), [employees, shiftTypes, scheduleData, currentUser]);
 
   return (
     <Router>
@@ -270,34 +299,8 @@ function AppRouter() {
             
             <Route path="/" element={
               currentUser ? (
-                currentUser.role === 'admin' ? (
-                  <WeekView 
-                    employees={employees}
-                    shiftTypes={shiftTypes}
-                    scheduleData={scheduleData}
-                    setScheduleData={setScheduleData}
-                    isEditable={true}
-                    currentUser={currentUser}
-                  />
-                ) : (
-                  <WeekView 
-                    employees={employees}
-                    shiftTypes={shiftTypes}
-                    scheduleData={scheduleData}
-                    setScheduleData={setScheduleData}
-                    isEditable={false}
-                    currentUser={currentUser}
-                  />
-                )
-              ) : (
-                <WeekView 
-                  employees={employees}
-                  shiftTypes={shiftTypes}
-                  scheduleData={scheduleData}
-                  setScheduleData={setScheduleData}
-                  isEditable={false}
-                />
-              )
+                currentUser.role === ROLES.ADMIN ? renderWeekView(true) : renderWeekView(false)
+              ) : renderWeekView(false)
             } />
             
             <Route path="/portal" element={
@@ -311,7 +314,7 @@ function AppRouter() {
             } />
             
             <Route path="/admin" element={
-              <ProtectedRoute user={currentUser} requiredRole="admin">
+              <ProtectedRoute user={currentUser} requiredRole={ROLES.ADMIN}>
                 <AdminArea 
                   employees={employees}
                   setEmployees={setEmployees}

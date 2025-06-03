@@ -36,8 +36,6 @@ function AdminNotifications({ requests, onApprove, onReject }) {
   return (
     <div className="admin-notifications">
       <h2>Benachrichtigungen</h2>
-
-      {/* Ausstehende Anträge */}
       {pendingRequests.length > 0 && (
         <div className="pending-section">
           <h3>Ausstehende Anträge</h3>
@@ -111,8 +109,6 @@ function AdminNotifications({ requests, onApprove, onReject }) {
           </div>
         </div>
       )}
-
-      {/* Bearbeitete Anträge */}
       {processedRequests.length > 0 && (
         <div className="processed-section">
           <h3>Bearbeitete Anträge</h3>
@@ -154,12 +150,6 @@ function AdminNotifications({ requests, onApprove, onReject }) {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {pendingRequests.length === 0 && processedRequests.length === 0 && (
-        <div className="empty-state">
-          <p>Keine Benachrichtigungen vorhanden</p>
         </div>
       )}
     </div>

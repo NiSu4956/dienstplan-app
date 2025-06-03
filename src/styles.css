@@ -83,7 +83,9 @@ body {
 .nav-link.active {
   color: #4f46e5;
   border-bottom: 2px solid #4f46e5;
-}/* Ergänzungen für Header und Layout */
+}
+
+/* Ergänzungen für Header und Layout */
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -147,7 +149,9 @@ body {
 
 .p-4 {
   padding: 1rem;
-}/* Wochenübersicht */
+}
+
+/* Wochenübersicht */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -411,6 +415,7 @@ body {
   font-weight: 500;
   margin-right: 0.5rem;
 }
+
 /* Einstellungen */
 .settings-container {
   display: flex;
@@ -576,7 +581,9 @@ body {
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid #e5e7eb;
-}/* Modal Styles */
+}
+
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -735,7 +742,9 @@ body {
   font-size: 0.75rem;
   margin-top: 0.25rem;
   color: #6b7280;
-}/* Weitere Formular- und Tag-Stile */
+}
+
+/* Weitere Formular- und Tag-Stile */
 .form-input-full {
   padding: 0.5rem 0.75rem;
   border: 1px solid #d1d5db;
@@ -825,7 +834,9 @@ body {
 
 .shift-action-button:hover {
   background-color: rgba(255, 255, 255, 0.5);
-}/* Suche in der Mitarbeiterverwaltung - finde diese Klasse */
+}
+
+/* Suche in der Mitarbeiterverwaltung - finde diese Klasse */
 /* Suchfeld in der Mitarbeiterverwaltung */
 .search-container {
   position: relative;
@@ -878,6 +889,7 @@ body {
   display: flex;
   gap: 10px;
 }
+
 /* Formularelemente für die Schichtverwaltung */
 .form-input {
   padding: 0.5rem 0.75rem;
@@ -920,7 +932,9 @@ body {
   border-radius: 50%;
   margin-right: 10px;
   vertical-align: middle;
-}/* Anpassungen für die Zeitplan-Tabelle */
+}
+
+/* Anpassungen für die Zeitplan-Tabelle */
 .schedule-table {
   border-collapse: collapse;
   width: 100%;
@@ -954,6 +968,7 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.1);
   margin: 0;
 }
+
 /* Kleinere Textgröße für parallele Schichten */
 .shift-card.parallel .shift-name {
   font-size: 0.75rem;
