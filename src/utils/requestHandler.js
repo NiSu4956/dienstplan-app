@@ -162,17 +162,29 @@ const checkDayConflicts = (dayData, employeeId, date) => {
 };
 
 export const validateRequest = (request, scheduleData) => {
-  if (!request.startDate || !request.endDate || !request.type || !request.employeeId) {
+  if (!request.startDate || !request.endDate) {
     return {
       isValid: false,
-      message: 'Bitte füllen Sie alle erforderlichen Felder aus.'
+      message: 'Bitte Start- und Enddatum angeben.'
     };
   }
 
   const startDate = new Date(request.startDate);
   const endDate = new Date(request.endDate);
-  startDate.setHours(0, 0, 0, 0);
-  endDate.setHours(23, 59, 59, 999);
+
+  if (startDate > endDate) {
+    return {
+      isValid: false,
+      message: 'Das Startdatum muss vor dem Enddatum liegen.'
+    };
+  }
+
+  if (startDate < new Date()) {
+    return {
+      isValid: false,
+      message: 'Das Startdatum darf nicht in der Vergangenheit liegen.'
+    };
+  }
 
   const dateValidation = validateRequestDates(startDate, endDate);
   if (!dateValidation.isValid) {

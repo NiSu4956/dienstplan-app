@@ -225,7 +225,7 @@ function AppRouter() {
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
-  }, [employees, createCustomShift, updateRequestStatus]);
+  }, [employees, createCustomShift, updateRequestStatus, getWeekKey, getDayName]);
 
   const handleRejectRequest = useCallback((request) => {
     updateRequestStatus(request, 'rejected');
@@ -253,7 +253,7 @@ function AppRouter() {
     const result = `KW ${weekNumber} (${formatDate(startDate)} - ${formatDate(endDate)}.${year})`;
     dateCache.set(dateString, result);
     return result;
-  }, []);
+  }, [getWeekNumber]);
 
   const getWeekNumber = useCallback((date) => {
     const dateString = date.toISOString();
