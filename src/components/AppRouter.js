@@ -8,6 +8,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { validateRequest } from '../utils/requestHandler';
 
 const USER_STORAGE_KEY = 'currentUser';
+const SCHEDULE_DATA_KEY = 'scheduleData';
 const DEFAULT_TIME_SLOT = '07:00';
 
 const ROLES = {
@@ -133,7 +134,10 @@ const dateCache = new Map();
 function AppRouter() {
   const [currentUser, setCurrentUser] = useState(null);
   const [requests, setRequests] = useState([]);
-  const [scheduleData, setScheduleData] = useState(INITIAL_SCHEDULE_DATA);
+  const [scheduleData, setScheduleData] = useState(() => {
+    const savedData = localStorage.getItem(SCHEDULE_DATA_KEY);
+    return savedData ? JSON.parse(savedData) : INITIAL_SCHEDULE_DATA;
+  });
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [shiftTypes, setShiftTypes] = useState(INITIAL_SHIFT_TYPES);
   const [children, setChildren] = useState(INITIAL_CHILDREN);
@@ -144,6 +148,10 @@ function AppRouter() {
       setCurrentUser(JSON.parse(savedUser));
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(SCHEDULE_DATA_KEY, JSON.stringify(scheduleData));
+  }, [scheduleData]);
 
   const handleLogin = useCallback((employee) => {
     setCurrentUser(employee);

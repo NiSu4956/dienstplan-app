@@ -386,6 +386,32 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   const [editingDocId, setEditingDocId] = useState(null);
   const [editingDocText, setEditingDocText] = useState('');
 
+  // Initialisiere scheduleData aus localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem('scheduleData');
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        console.log('Loading initial data from localStorage:', parsedData);
+        setScheduleData(parsedData);
+      } catch (error) {
+        console.error('Error loading initial data from localStorage:', error);
+      }
+    }
+  }, []); // Nur beim ersten Laden ausführen
+
+  // Speichere scheduleData in localStorage bei Änderungen
+  useEffect(() => {
+    if (scheduleData) {
+      try {
+        localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+        console.log('Saved updated scheduleData to localStorage');
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
+    }
+  }, [scheduleData]);
+
   // Effekt zum Aktualisieren der ausgewählten Woche, wenn sich das Datum ändert
   useEffect(() => {
     const interval = setInterval(() => {
@@ -421,7 +447,11 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   // Aktualisiere die useEffect-Hook für das Laden der aktuellen Schicht
   useEffect(() => {
     if (modalOpen && modalData.day && modalData.time && selectedShiftId) {
-      console.log('Modal opened, loading shift data...'); // Debug-Log
+      console.log('Modal opened, loading shift data...', {
+        selectedWeek,
+        modalData,
+        selectedShiftId
+      }); // Debug-Log
       
       // Hole die aktuelle Version der Schicht aus scheduleData
       const currentShiftData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
@@ -429,35 +459,62 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       );
       
       console.log('Found shift data in scheduleData:', currentShiftData); // Debug-Log
+      console.log('Full scheduleData for this time slot:', 
+        JSON.stringify(scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time], null, 2)
+      ); // Debug-Log
       
       if (currentShiftData) {
-        console.log('Setting currentShift with documentations:', currentShiftData.documentations); // Debug-Log
-        setCurrentShift(currentShiftData);
+        // Stelle sicher, dass documentations als Array initialisiert ist
+        const shiftWithDocs = {
+          ...currentShiftData,
+          documentations: Array.isArray(currentShiftData.documentations) 
+            ? [...currentShiftData.documentations] 
+            : []
+        };
+        console.log('Setting currentShift with documentations:', shiftWithDocs); // Debug-Log
+        setCurrentShift(shiftWithDocs);
+      } else {
+        console.warn('No shift data found for:', {
+          selectedWeek,
+          day: modalData.day,
+          time: modalData.time,
+          shiftId: selectedShiftId
+        });
       }
     }
   }, [modalOpen, selectedWeek, modalData.day, modalData.time, scheduleData, selectedShiftId]);
 
-  // Entferne das automatische Öffnen der Dokumentationen aus dem Effect
+  // Füge einen Effect hinzu, der auf Änderungen des scheduleData reagiert
   useEffect(() => {
     if (modalOpen && currentShift && modalData.day && modalData.time) {
-      const updatedShiftData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
+      const currentShiftInData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
         s => s.id === currentShift.id
       );
       
-      console.log('Checking for updated shift data:', updatedShiftData); // Debug-Log
-      
-      if (updatedShiftData && JSON.stringify(updatedShiftData) !== JSON.stringify(currentShift)) {
-        console.log('Updating currentShift with new data:', updatedShiftData); // Debug-Log
-        setCurrentShift(updatedShiftData);
+      if (currentShiftInData && JSON.stringify(currentShiftInData) !== JSON.stringify(currentShift)) {
+        console.log('Updating currentShift from scheduleData:', currentShiftInData);
+        setCurrentShift(currentShiftInData);
+        
+        // Zeige Dokumentationen an, wenn welche vorhanden sind
+        if (Array.isArray(currentShiftInData.documentations) && currentShiftInData.documentations.length > 0) {
+          setShowDocumentations(true);
+        }
       }
     }
   }, [scheduleData, modalOpen, currentShift, modalData.day, modalData.time, selectedWeek]);
 
   const handleShiftClick = useCallback((shift, day, time) => {
-    console.log('Clicked shift:', shift); // Debug-Log
+    console.log('Opening shift:', { 
+      shift, 
+      day, 
+      time,
+      selectedWeek,
+      scheduleData: scheduleData[selectedWeek]?.[day]?.[time]
+    });
     
-    // Setze zuerst die selectedShiftId
     setSelectedShiftId(shift.id);
+    setModalData({ day, time });
+    setShowDocumentations(false);
     
     const isUserShift = currentUser && (
       (shift.isCustom && shift.customEmployeeIds?.includes(currentUser.id)) ||
@@ -465,32 +522,49 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     );
     
     if (isEditable || isUserShift) {
-      // Setze modalData vor dem Öffnen des Modals
-      setModalData({ day, time });
-      
-      // Hole die aktuelle Version der Schicht aus scheduleData
-      const currentShiftData = scheduleData[selectedWeek]?.[day]?.[time]?.find(s => s.id === shift.id);
-      console.log('Loading shift with documentations:', currentShiftData); // Debug-Log
-      
-      if (currentShiftData) {
-        // Stelle sicher, dass documentations initialisiert ist
-        const shiftWithDocs = {
-          ...currentShiftData,
-          documentations: currentShiftData.documentations || []
-        };
-        setCurrentShift(shiftWithDocs);
-      } else {
-        // Initialisiere eine neue Schicht mit leerem documentations Array
-        const newShift = {
-          ...shift,
-          documentations: []
-        };
-        setCurrentShift(newShift);
+      try {
+        // Hole die aktuelle Version der Schicht aus scheduleData
+        let currentShiftData = null;
+        
+        // Suche in allen Zeitslots des Tages
+        if (scheduleData[selectedWeek]?.[day]) {
+          Object.keys(scheduleData[selectedWeek][day]).forEach(timeSlot => {
+            const foundShift = scheduleData[selectedWeek][day][timeSlot]?.find(s => s.id === shift.id);
+            if (foundShift) {
+              currentShiftData = foundShift;
+              // Aktualisiere modalData mit dem korrekten Zeitslot
+              setModalData({ day, time: timeSlot });
+            }
+          });
+        }
+        
+        console.log('Found shift in scheduleData:', currentShiftData);
+        
+        if (currentShiftData) {
+          // Stelle sicher, dass documentations als Array initialisiert ist
+          const shiftWithDocs = {
+            ...currentShiftData,
+            documentations: Array.isArray(currentShiftData.documentations) 
+              ? [...currentShiftData.documentations] 
+              : []
+          };
+          
+          console.log('Setting currentShift with docs:', shiftWithDocs);
+          setCurrentShift(shiftWithDocs);
+        } else {
+          console.warn('Shift not found in scheduleData, creating new shift object');
+          const newShift = {
+            ...shift,
+            documentations: []
+          };
+          setCurrentShift(newShift);
+        }
+        
+        setModalOpen(true);
+      } catch (error) {
+        console.error('Error in handleShiftClick:', error);
+        alert('Beim Laden der Schichtdaten ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
       }
-      
-      // Setze showDocumentations auf false beim Öffnen des Modals
-      setShowDocumentations(false);
-      setModalOpen(true);
     }
   }, [isEditable, currentUser, scheduleData, selectedWeek]);
 
@@ -631,6 +705,9 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     
     let newShift;
     
+    // Hole die existierenden Dokumentationen aus der aktuellen Schicht
+    const existingDocumentations = currentShift?.documentations || [];
+    
     if (isCustom) {
       // Stelle sicher, dass die IDs als Zahlen gespeichert werden
       const employeeIdsAsNumbers = (customEmployeeIds || []).map(id => parseInt(id));
@@ -647,7 +724,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         notes,
         type: customColor,
         name: mainEmployee ? mainEmployee.name : customTitle,
-        documentations: currentShift?.documentations || [] // Initialisiere das documentations Array
+        documentations: existingDocumentations // Behalte die existierenden Dokumentationen
       };
     } else {
       const employee = employees.find(e => e.id === parseInt(employeeId));
@@ -665,7 +742,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         type: shiftType.color,
         notes,
         isCustom: false,
-        documentations: currentShift?.documentations || [] // Initialisiere das documentations Array
+        documentations: existingDocumentations // Behalte die existierenden Dokumentationen
       };
     }
     
@@ -873,54 +950,78 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       employeeId: currentUser.id
     };
 
-    console.log('Saving new documentation:', newDoc); // Debug-Log
+    try {
+      // Erstelle eine aktualisierte Version der aktuellen Schicht
+      const updatedShift = {
+        ...currentShift,
+        documentations: [...(currentShift.documentations || []), newDoc]
+      };
 
-    // Erstelle eine neue Kopie des currentShift mit der neuen Dokumentation
-    const updatedShift = {
-      ...currentShift,
-      documentations: currentShift.documentations ? [...currentShift.documentations, newDoc] : [newDoc]
-    };
+      console.log('Saving documentation - Updated shift:', updatedShift);
 
-    console.log('Updated shift with new documentation:', updatedShift); // Debug-Log
+      // Aktualisiere den scheduleData State
+      setScheduleData(prev => {
+        const updatedData = { ...prev };
+        const weekKey = selectedWeek;
+        const day = modalData.day;
+        const time = modalData.time;
 
-    // Aktualisiere scheduleData
-    setScheduleData(prev => {
-      const updatedData = JSON.parse(JSON.stringify(prev));
-      const weekKey = selectedWeek;
-      const day = modalData.day;
-      const time = modalData.time;
+        console.log('Saving to scheduleData at:', {
+          weekKey,
+          day,
+          time,
+          shiftId: currentShift.id
+        });
+
+        if (!updatedData[weekKey]) updatedData[weekKey] = {};
+        if (!updatedData[weekKey][day]) updatedData[weekKey][day] = {};
+        if (!updatedData[weekKey][day][time]) updatedData[weekKey][day][time] = [];
+
+        const shiftIndex = updatedData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
+
+        if (shiftIndex >= 0) {
+          updatedData[weekKey][day][time][shiftIndex] = updatedShift;
+          console.log('Updated scheduleData:', updatedData[weekKey][day][time][shiftIndex]);
+        } else {
+          console.warn('Shift not found at expected position, searching in all time slots');
+          
+          // Suche in allen Zeitslots des Tages
+          let shiftFound = false;
+          Object.keys(updatedData[weekKey][day]).forEach(timeSlot => {
+            const idx = updatedData[weekKey][day][timeSlot].findIndex(s => s.id === currentShift.id);
+            if (idx >= 0) {
+              updatedData[weekKey][day][timeSlot][idx] = updatedShift;
+              shiftFound = true;
+              console.log('Found and updated shift in time slot:', timeSlot);
+            }
+          });
+          
+          if (!shiftFound) {
+            console.warn('Shift not found in any time slot, adding to current time slot');
+            updatedData[weekKey][day][time].push(updatedShift);
+          }
+        }
+
+        return updatedData;
+      });
+
+      // Aktualisiere den currentShift State
+      setCurrentShift(updatedShift);
       
-      if (!updatedData[weekKey]) updatedData[weekKey] = {};
-      if (!updatedData[weekKey][day]) updatedData[weekKey][day] = {};
-      if (!updatedData[weekKey][day][time]) updatedData[weekKey][day][time] = [];
+      // Zeige die Dokumentationen an
+      setShowDocumentations(true);
+      setDocumentationSaved(true);
+      setSelectedChild('');
+      setDocumentation('');
 
-      const shiftIndex = updatedData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
-      
-      if (shiftIndex >= 0) {
-        updatedData[weekKey][day][time][shiftIndex] = updatedShift;
-        console.log('Updated scheduleData:', updatedData[weekKey][day][time][shiftIndex]); // Debug-Log
-      }
-      
-      return updatedData;
-    });
+      setTimeout(() => {
+        setDocumentationSaved(false);
+      }, 2000);
 
-    // Aktualisiere den currentShift
-    setCurrentShift(updatedShift);
-
-    // Zeige die Dokumentationen an
-    setShowDocumentations(true);
-
-    // Zeige die Erfolgsmeldung
-    setDocumentationSaved(true);
-    
-    // Setze die Eingabefelder zurück
-    setSelectedChild('');
-    setDocumentation('');
-    
-    // Blende die Erfolgsmeldung nach 2 Sekunden aus
-    setTimeout(() => {
-      setDocumentationSaved(false);
-    }, 2000);
+    } catch (error) {
+      console.error('Error saving documentation:', error);
+      alert('Beim Speichern der Dokumentation ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
+    }
   };
 
   const handleEditDocumentation = (docId) => {
@@ -1005,21 +1106,6 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       }, 2000);
     }
   };
-
-  // Füge einen Effect hinzu, der auf Änderungen des currentShift reagiert
-  useEffect(() => {
-    console.log('currentShift changed:', currentShift); // Debug-Log
-  }, [currentShift]);
-
-  // Füge einen Effect hinzu, der auf Änderungen des scheduleData reagiert
-  useEffect(() => {
-    if (currentShift && modalData.day && modalData.time) {
-      const currentShiftInData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
-        s => s.id === currentShift.id
-      );
-      console.log('Current shift in scheduleData:', currentShiftInData); // Debug-Log
-    }
-  }, [scheduleData, currentShift, modalData.day, modalData.time, selectedWeek]);
 
   // Render
   return (
