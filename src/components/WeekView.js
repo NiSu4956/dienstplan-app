@@ -388,21 +388,14 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
 
   // Initialisiere scheduleData aus localStorage
   useEffect(() => {
-    const savedData = localStorage.getItem('scheduleData');
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        console.log('Loading initial data from localStorage:', parsedData);
-        setScheduleData(parsedData);
-      } catch (error) {
-        console.error('Error loading initial data from localStorage:', error);
-      }
-    }
+    // Leere das localStorage für einen sauberen Start
+    localStorage.removeItem('scheduleData');
+    setScheduleData({});
   }, []); // Nur beim ersten Laden ausführen
 
   // Speichere scheduleData in localStorage bei Änderungen
   useEffect(() => {
-    if (scheduleData) {
+    if (scheduleData && Object.keys(scheduleData).length > 0) {
       try {
         localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
         console.log('Saved updated scheduleData to localStorage');
