@@ -433,19 +433,13 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       if (currentShiftData) {
         console.log('Setting currentShift with documentations:', currentShiftData.documentations); // Debug-Log
         setCurrentShift(currentShiftData);
-        
-        // Wenn Dokumentationen vorhanden sind, zeige sie an
-        if (currentShiftData.documentations?.length > 0) {
-          setShowDocumentations(true);
-        }
       }
     }
   }, [modalOpen, selectedWeek, modalData.day, modalData.time, scheduleData, selectedShiftId]);
 
-  // Füge einen Effect hinzu, der auf Änderungen des scheduleData reagiert
+  // Entferne das automatische Öffnen der Dokumentationen aus dem Effect
   useEffect(() => {
     if (modalOpen && currentShift && modalData.day && modalData.time) {
-      // Hole die aktuelle Version der Schicht aus scheduleData
       const updatedShiftData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
         s => s.id === currentShift.id
       );
@@ -455,11 +449,6 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       if (updatedShiftData && JSON.stringify(updatedShiftData) !== JSON.stringify(currentShift)) {
         console.log('Updating currentShift with new data:', updatedShiftData); // Debug-Log
         setCurrentShift(updatedShiftData);
-        
-        // Wenn Dokumentationen vorhanden sind, zeige sie an
-        if (updatedShiftData.documentations?.length > 0) {
-          setShowDocumentations(true);
-        }
       }
     }
   }, [scheduleData, modalOpen, currentShift, modalData.day, modalData.time, selectedWeek]);
@@ -499,6 +488,8 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         setCurrentShift(newShift);
       }
       
+      // Setze showDocumentations auf false beim Öffnen des Modals
+      setShowDocumentations(false);
       setModalOpen(true);
     }
   }, [isEditable, currentUser, scheduleData, selectedWeek]);
