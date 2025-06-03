@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Modal from '../common/Modal';
 import ShiftForm from './ShiftForm';
 
-function ShiftManagement({ shiftTypes, setShiftTypes }) {
+function ShiftManagement({ shiftTypes, setShiftTypes, employees }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentShift, setCurrentShift] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -117,6 +117,7 @@ function ShiftManagement({ shiftTypes, setShiftTypes }) {
           shift={currentShift}
           onSave={handleSaveShift}
           onCancel={() => setModalOpen(false)}
+          employees={employees}
         />
       </Modal>
     </div>

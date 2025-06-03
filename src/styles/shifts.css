@@ -93,4 +93,47 @@
 .shift-details strong {
   color: #4b5563;
   margin-right: 0.5rem;
+}
+
+.documentation-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.documentation-section h4 {
+  color: #374151;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.previous-documentations {
+  margin-top: 2rem;
+}
+
+.documentation-entry {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.documentation-entry p {
+  margin: 0.5rem 0;
+}
+
+.documentation-author {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.success-message {
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  text-align: center;
 } 

@@ -147,7 +147,7 @@ const ScheduleCell = memo(({
   );
 });
 
-function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEditable = false, currentUser }) {
+function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEditable = false, currentUser, children }) {
   const days = useMemo(() => ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'], []);
   const timeSlots = useMemo(() => ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
                      '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'], []);
@@ -379,6 +379,12 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedDay, setSelectedDay] = useState('');
   const [selectedShiftId, setSelectedShiftId] = useState(null);
+  const [selectedChild, setSelectedChild] = useState('');
+  const [documentation, setDocumentation] = useState('');
+  const [documentationSaved, setDocumentationSaved] = useState(false);
+  const [showDocumentations, setShowDocumentations] = useState(false);
+  const [editingDocId, setEditingDocId] = useState(null);
+  const [editingDocText, setEditingDocText] = useState('');
 
   // Effekt zum Aktualisieren der ausgewählten Woche, wenn sich das Datum ändert
   useEffect(() => {
@@ -412,20 +418,91 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     };
   }, []);
 
-  // Memoized helper functions
+  // Aktualisiere die useEffect-Hook für das Laden der aktuellen Schicht
+  useEffect(() => {
+    if (modalOpen && modalData.day && modalData.time && selectedShiftId) {
+      console.log('Modal opened, loading shift data...'); // Debug-Log
+      
+      // Hole die aktuelle Version der Schicht aus scheduleData
+      const currentShiftData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
+        s => s.id === selectedShiftId
+      );
+      
+      console.log('Found shift data in scheduleData:', currentShiftData); // Debug-Log
+      
+      if (currentShiftData) {
+        console.log('Setting currentShift with documentations:', currentShiftData.documentations); // Debug-Log
+        setCurrentShift(currentShiftData);
+        
+        // Wenn Dokumentationen vorhanden sind, zeige sie an
+        if (currentShiftData.documentations?.length > 0) {
+          setShowDocumentations(true);
+        }
+      }
+    }
+  }, [modalOpen, selectedWeek, modalData.day, modalData.time, scheduleData, selectedShiftId]);
+
+  // Füge einen Effect hinzu, der auf Änderungen des scheduleData reagiert
+  useEffect(() => {
+    if (modalOpen && currentShift && modalData.day && modalData.time) {
+      // Hole die aktuelle Version der Schicht aus scheduleData
+      const updatedShiftData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
+        s => s.id === currentShift.id
+      );
+      
+      console.log('Checking for updated shift data:', updatedShiftData); // Debug-Log
+      
+      if (updatedShiftData && JSON.stringify(updatedShiftData) !== JSON.stringify(currentShift)) {
+        console.log('Updating currentShift with new data:', updatedShiftData); // Debug-Log
+        setCurrentShift(updatedShiftData);
+        
+        // Wenn Dokumentationen vorhanden sind, zeige sie an
+        if (updatedShiftData.documentations?.length > 0) {
+          setShowDocumentations(true);
+        }
+      }
+    }
+  }, [scheduleData, modalOpen, currentShift, modalData.day, modalData.time, selectedWeek]);
+
   const handleShiftClick = useCallback((shift, day, time) => {
+    console.log('Clicked shift:', shift); // Debug-Log
+    
+    // Setze zuerst die selectedShiftId
     setSelectedShiftId(shift.id);
+    
     const isUserShift = currentUser && (
       (shift.isCustom && shift.customEmployeeIds?.includes(currentUser.id)) ||
       (!shift.isCustom && shift.employeeId === currentUser.id)
     );
+    
     if (isEditable || isUserShift) {
-      setCurrentShift(shift);
+      // Setze modalData vor dem Öffnen des Modals
       setModalData({ day, time });
+      
+      // Hole die aktuelle Version der Schicht aus scheduleData
+      const currentShiftData = scheduleData[selectedWeek]?.[day]?.[time]?.find(s => s.id === shift.id);
+      console.log('Loading shift with documentations:', currentShiftData); // Debug-Log
+      
+      if (currentShiftData) {
+        // Stelle sicher, dass documentations initialisiert ist
+        const shiftWithDocs = {
+          ...currentShiftData,
+          documentations: currentShiftData.documentations || []
+        };
+        setCurrentShift(shiftWithDocs);
+      } else {
+        // Initialisiere eine neue Schicht mit leerem documentations Array
+        const newShift = {
+          ...shift,
+          documentations: []
+        };
+        setCurrentShift(newShift);
+      }
+      
       setModalOpen(true);
     }
-  }, [isEditable, currentUser]);
-  
+  }, [isEditable, currentUser, scheduleData, selectedWeek]);
+
   const handleAddShift = useCallback((day, time) => {
     setModalData({ day, time });
     setCurrentShift(null);
@@ -469,6 +546,34 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     const isToday = isCurrentDay(dateString);
     return { dateString, isToday };
   }, [selectedWeek, selectedDay, days]);
+
+  // Hilfsfunktion zum Formatieren des Datums
+  const formatDate = (weekString, day) => {
+    const dateString = getDateFromWeek(weekString, days.indexOf(day));
+    // Extrahiere Tag, Monat und Jahr aus dem String (Format: DD.MM.YYYY)
+    const [day_str, month_str, year_str] = dateString.split('.');
+    return `${day}, ${day_str.padStart(2, '0')}.${month_str.padStart(2, '0')}.${year_str}`;
+  };
+
+  // Hilfsfunktion zum Ermitteln der Start- und Endzeit
+  const getShiftTimes = (shift, time) => {
+    if (shift?.isCustom) {
+      return `${shift.customStartTime} - ${shift.customEndTime}`;
+    }
+
+    const shiftType = shiftTypes.find(t => t.id === shift?.shiftTypeId);
+    if (shiftType) {
+      return `${shiftType.startTime} - ${shiftType.endTime}`;
+    }
+
+    // Fallback: Wenn keine spezifischen Zeiten gefunden wurden
+    const timeIndex = timeSlots.indexOf(time);
+    if (timeIndex >= 0 && timeIndex < timeSlots.length - 1) {
+      return `${time} - ${timeSlots[timeIndex + 1]}`;
+    }
+
+    return time;
+  };
 
   // Schicht-Funktionen
   const handleSaveShift = (shiftData) => {
@@ -550,25 +655,27 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         customEmployeeIds: employeeIdsAsNumbers,
         notes,
         type: customColor,
-        name: mainEmployee ? mainEmployee.name : customTitle
+        name: mainEmployee ? mainEmployee.name : customTitle,
+        documentations: currentShift?.documentations || [] // Initialisiere das documentations Array
       };
     } else {
-    const employee = employees.find(e => e.id === parseInt(employeeId));
-    const shiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
-    
-    if (!employee || !shiftType) return;
-    
+      const employee = employees.find(e => e.id === parseInt(employeeId));
+      const shiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
+      
+      if (!employee || !shiftType) return;
+      
       newShift = {
-      id: currentShift ? currentShift.id : Date.now(),
-      employeeId: parseInt(employeeId),
-      name: employee.name,
-      shiftTypeId: parseInt(shiftTypeId),
-      task: shiftType.name,
-      tasks: shiftType.tasks || [],
-      type: shiftType.color,
-      notes,
-      isCustom: false
-    };
+        id: currentShift ? currentShift.id : Date.now(),
+        employeeId: parseInt(employeeId),
+        name: employee.name,
+        shiftTypeId: parseInt(shiftTypeId),
+        task: shiftType.name,
+        tasks: shiftType.tasks || [],
+        type: shiftType.color,
+        notes,
+        isCustom: false,
+        documentations: currentShift?.documentations || [] // Initialisiere das documentations Array
+      };
     }
     
     setScheduleData(prev => {
@@ -764,6 +871,165 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     doc.save(`Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`);
   };
 
+  const handleSaveDocumentation = async () => {
+    if (!selectedChild || !documentation.trim()) return;
+
+    const newDoc = {
+      id: Date.now(),
+      childId: parseInt(selectedChild),
+      text: documentation,
+      timestamp: new Date().toISOString(),
+      employeeId: currentUser.id
+    };
+
+    console.log('Saving new documentation:', newDoc); // Debug-Log
+
+    // Erstelle eine neue Kopie des currentShift mit der neuen Dokumentation
+    const updatedShift = {
+      ...currentShift,
+      documentations: currentShift.documentations ? [...currentShift.documentations, newDoc] : [newDoc]
+    };
+
+    console.log('Updated shift with new documentation:', updatedShift); // Debug-Log
+
+    // Aktualisiere scheduleData
+    setScheduleData(prev => {
+      const updatedData = JSON.parse(JSON.stringify(prev));
+      const weekKey = selectedWeek;
+      const day = modalData.day;
+      const time = modalData.time;
+      
+      if (!updatedData[weekKey]) updatedData[weekKey] = {};
+      if (!updatedData[weekKey][day]) updatedData[weekKey][day] = {};
+      if (!updatedData[weekKey][day][time]) updatedData[weekKey][day][time] = [];
+
+      const shiftIndex = updatedData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
+      
+      if (shiftIndex >= 0) {
+        updatedData[weekKey][day][time][shiftIndex] = updatedShift;
+        console.log('Updated scheduleData:', updatedData[weekKey][day][time][shiftIndex]); // Debug-Log
+      }
+      
+      return updatedData;
+    });
+
+    // Aktualisiere den currentShift
+    setCurrentShift(updatedShift);
+
+    // Zeige die Dokumentationen an
+    setShowDocumentations(true);
+
+    // Zeige die Erfolgsmeldung
+    setDocumentationSaved(true);
+    
+    // Setze die Eingabefelder zurück
+    setSelectedChild('');
+    setDocumentation('');
+    
+    // Blende die Erfolgsmeldung nach 2 Sekunden aus
+    setTimeout(() => {
+      setDocumentationSaved(false);
+    }, 2000);
+  };
+
+  const handleEditDocumentation = (docId) => {
+    const doc = currentShift.documentations.find(d => d.id === docId);
+    if (doc) {
+      setEditingDocId(docId);
+      setEditingDocText(doc.text);
+      setSelectedChild(doc.childId.toString());
+    }
+  };
+
+  const handleUpdateDocumentation = () => {
+    if (!editingDocText.trim() || !selectedChild) return;
+
+    setScheduleData(prev => {
+      const newData = { ...prev };
+      const weekKey = selectedWeek;
+      const day = modalData.day;
+      const time = modalData.time;
+      
+      const shiftIndex = newData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
+      
+      if (shiftIndex >= 0) {
+        const updatedDocs = currentShift.documentations.map(doc => 
+          doc.id === editingDocId
+            ? { ...doc, text: editingDocText, childId: parseInt(selectedChild) }
+            : doc
+        );
+        
+        const updatedShift = {
+          ...currentShift,
+          documentations: updatedDocs
+        };
+        
+        setCurrentShift(updatedShift);
+        newData[weekKey][day][time][shiftIndex] = updatedShift;
+      }
+      
+      return newData;
+    });
+
+    setDocumentationSaved(true);
+    setEditingDocId(null);
+    setEditingDocText('');
+    setSelectedChild('');
+    
+    setTimeout(() => {
+      setDocumentationSaved(false);
+    }, 2000);
+  };
+
+  const handleDeleteDocumentation = (docId) => {
+    if (window.confirm('Möchten Sie diese Dokumentation wirklich löschen?')) {
+      // Zuerst den currentShift aktualisieren
+      const updatedDocs = currentShift.documentations.filter(doc => doc.id !== docId);
+      const updatedShift = {
+        ...currentShift,
+        documentations: updatedDocs
+      };
+      setCurrentShift(updatedShift);
+
+      // Dann scheduleData aktualisieren
+      setScheduleData(prev => {
+        const newData = { ...prev };
+        const weekKey = selectedWeek;
+        const day = modalData.day;
+        const time = modalData.time;
+        
+        const shiftIndex = newData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
+        
+        if (shiftIndex >= 0) {
+          newData[weekKey][day][time][shiftIndex] = updatedShift;
+        }
+        
+        return newData;
+      });
+
+      // Erfolgsmeldung anzeigen
+      setDocumentationSaved(true);
+      setTimeout(() => {
+        setDocumentationSaved(false);
+      }, 2000);
+    }
+  };
+
+  // Füge einen Effect hinzu, der auf Änderungen des currentShift reagiert
+  useEffect(() => {
+    console.log('currentShift changed:', currentShift); // Debug-Log
+  }, [currentShift]);
+
+  // Füge einen Effect hinzu, der auf Änderungen des scheduleData reagiert
+  useEffect(() => {
+    if (currentShift && modalData.day && modalData.time) {
+      const currentShiftInData = scheduleData[selectedWeek]?.[modalData.day]?.[modalData.time]?.find(
+        s => s.id === currentShift.id
+      );
+      console.log('Current shift in scheduleData:', currentShiftInData); // Debug-Log
+    }
+  }, [scheduleData, currentShift, modalData.day, modalData.time, selectedWeek]);
+
   // Render
   return (
     <div className="card">
@@ -955,16 +1221,22 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         <Modal 
           isOpen={modalOpen} 
           onClose={() => {
-            setModalOpen(false);
             setSelectedShiftId(null);
+            setSelectedChild('');
+            setDocumentation('');
+            setDocumentationSaved(false);
+            setShowDocumentations(false);
+            setEditingDocId(null);
+            setEditingDocText('');
+            setModalOpen(false);
           }}
           title="Schichtdetails"
         >
           <div className="modal-content">
             <div className="shift-details">
               <p><strong>Schichttyp:</strong> {currentShift?.isCustom ? currentShift.customTitle : shiftTypes.find(t => t.id === currentShift?.shiftTypeId)?.name}</p>
-              <p><strong>Datum:</strong> {modalData.day}</p>
-              <p><strong>Uhrzeit:</strong> {currentShift?.isCustom ? `${currentShift.customStartTime} - ${currentShift.customEndTime}` : modalData.time}</p>
+              <p><strong>Datum:</strong> {formatDate(selectedWeek, modalData.day)}</p>
+              <p><strong>Uhrzeit:</strong> {getShiftTimes(currentShift, modalData.time)}</p>
               {currentShift?.tasks?.length > 0 && (
                 <p><strong>Aufgaben:</strong> {currentShift.tasks.join(', ')}</p>
               )}
@@ -972,10 +1244,198 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
                 <p><strong>Notizen:</strong> {currentShift.notes}</p>
               )}
             </div>
+
+            {currentUser && (currentShift?.employeeId === currentUser.id || currentShift?.customEmployeeIds?.includes(currentUser.id)) && (
+              <div className="documentation-section">
+                <h4>Dokumentation</h4>
+                
+                <button 
+                  className={`documentation-toggle-button ${showDocumentations ? 'open' : ''}`}
+                  onClick={() => setShowDocumentations(!showDocumentations)}
+                >
+                  Dokumentationen {currentShift?.documentations?.length > 0 ? `(${currentShift.documentations.length})` : ''}
+                  <svg 
+                    width="12" 
+                    height="12" 
+                    viewBox="0 0 12 12" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path 
+                      d="M2 4L6 8L10 4" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {showDocumentations && (
+                  <>
+                    {currentShift?.documentations && currentShift.documentations.length > 0 && (
+                      <div className="documentation-list">
+                        {currentShift.documentations.map(doc => {
+                          const child = children.find(c => c.id === doc.childId);
+                          const employee = employees.find(e => e.id === doc.employeeId);
+                          const isEditing = doc.id === editingDocId;
+                          
+                          return (
+                            <div key={doc.id} className="documentation-entry">
+                              {isEditing ? (
+                                <>
+                                  <div className="form-group">
+                                    <label className="form-label">Kind auswählen</label>
+                                    <select
+                                      className="form-select"
+                                      value={selectedChild}
+                                      onChange={(e) => setSelectedChild(e.target.value)}
+                                    >
+                                      <option value="">Bitte wählen...</option>
+                                      {children.map((child) => (
+                                        <option key={child.id} value={child.id}>
+                                          {child.name} ({child.group})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  <div className="form-group">
+                                    <label className="form-label">Dokumentation bearbeiten</label>
+                                    <textarea
+                                      className="form-textarea"
+                                      value={editingDocText}
+                                      onChange={(e) => setEditingDocText(e.target.value)}
+                                      rows={4}
+                                      maxLength={1000}
+                                    />
+                                  </div>
+
+                                  <div className="documentation-actions">
+                                    <button
+                                      className="button primary"
+                                      onClick={handleUpdateDocumentation}
+                                      disabled={!editingDocText.trim() || !selectedChild}
+                                    >
+                                      Speichern
+                                    </button>
+                                    <button
+                                      className="button secondary"
+                                      onClick={() => {
+                                        setEditingDocId(null);
+                                        setEditingDocText('');
+                                        setSelectedChild('');
+                                      }}
+                                    >
+                                      Abbrechen
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="documentation-header">
+                                    <p>
+                                      <strong>{child?.name}</strong>
+                                      <span className="documentation-date">
+                                        {new Date(doc.timestamp).toLocaleString('de-DE', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    </p>
+                                    {doc.employeeId === currentUser.id && (
+                                      <div className="documentation-actions">
+                                        <button
+                                          className="icon-button edit"
+                                          onClick={() => handleEditDocumentation(doc.id)}
+                                          title="Dokumentation bearbeiten"
+                                        >
+                                          ✎
+                                        </button>
+                                        <button
+                                          className="icon-button delete"
+                                          onClick={() => handleDeleteDocumentation(doc.id)}
+                                          title="Dokumentation löschen"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="documentation-text">{doc.text}</p>
+                                  <p className="documentation-author">Dokumentiert von: {employee?.name}</p>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="form-group mt-4">
+                      <label className="form-label">Kind auswählen</label>
+                      <select
+                        className="form-select"
+                        value={selectedChild}
+                        onChange={(e) => setSelectedChild(e.target.value)}
+                      >
+                        <option value="">Bitte wählen...</option>
+                        {children.map((child) => (
+                          <option key={child.id} value={child.id}>
+                            {child.name} ({child.group})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Dokumentation</label>
+                      <div className="documentation-input-container">
+                        <textarea
+                          className="form-textarea"
+                          value={documentation}
+                          onChange={(e) => setDocumentation(e.target.value)}
+                          placeholder="Dokumentation eingeben..."
+                          rows={4}
+                          maxLength={1000}
+                        />
+                        <div className="character-counter">
+                          {documentation.length}/1000 Zeichen
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      className="button primary"
+                      onClick={handleSaveDocumentation}
+                      disabled={!selectedChild || !documentation.trim()}
+                    >
+                      Dokumentation speichern
+                    </button>
+
+                    {documentationSaved && (
+                      <div className="success-message">
+                        ✓ Dokumentation wurde erfolgreich gespeichert!
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="modal-footer">
               <button type="button" className="button secondary" onClick={() => {
-                setModalOpen(false);
                 setSelectedShiftId(null);
+                setSelectedChild('');
+                setDocumentation('');
+                setDocumentationSaved(false);
+                setShowDocumentations(false);
+                setEditingDocId(null);
+                setEditingDocText('');
+                setModalOpen(false);
               }}>
                 Schließen
               </button>

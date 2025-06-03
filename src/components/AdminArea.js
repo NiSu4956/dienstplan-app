@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import EmployeeView from './EmployeeView';
 import ShiftManagement from './shifts/ShiftManagement';
-import ChildrenManagement from './admin/ChildrenManagement';
+import ChildManagement from './children/ChildManagement';
 import NotificationView from './admin/NotificationView';
 
 function AdminArea({ 
@@ -9,10 +9,12 @@ function AdminArea({
   setEmployees, 
   shiftTypes, 
   setShiftTypes, 
-  requests,
-  onApproveRequest,
+  requests, 
+  onApproveRequest, 
   onRejectRequest,
-  scheduleData
+  scheduleData,
+  children,
+  setChildren
 }) {
   const [activeTab, setActiveTab] = useState('employees');
   const pendingRequests = requests.filter(req => req.status === 'pending');
@@ -31,25 +33,25 @@ function AdminArea({
       </div>
 
       <div className="admin-tabs">
-        <button
+        <button 
           className={`tab-button ${activeTab === 'employees' ? 'active' : ''}`}
           onClick={() => setActiveTab('employees')}
         >
           Personal
         </button>
-        <button
+        <button 
           className={`tab-button ${activeTab === 'shifts' ? 'active' : ''}`}
           onClick={() => setActiveTab('shifts')}
         >
           Schichttypen
         </button>
-        <button
+        <button 
           className={`tab-button ${activeTab === 'children' ? 'active' : ''}`}
           onClick={() => setActiveTab('children')}
         >
           Kinder
         </button>
-        <button
+        <button 
           className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
           onClick={() => setActiveTab('notifications')}
         >
@@ -71,10 +73,14 @@ function AdminArea({
           <ShiftManagement 
             shiftTypes={shiftTypes}
             setShiftTypes={setShiftTypes}
+            employees={employees}
           />
         )}
         {activeTab === 'children' && (
-          <ChildrenManagement />
+          <ChildManagement 
+            children={children}
+            setChildren={setChildren}
+          />
         )}
         {activeTab === 'notifications' && (
           <NotificationView 

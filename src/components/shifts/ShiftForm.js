@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 const colors = [
   { value: 'blue', label: 'Blau' },
@@ -9,18 +9,16 @@ const colors = [
   { value: 'yellow', label: 'Gelb' }
 ];
 
-const availableQualifications = [
-  'WG1',
-  'WG2',
-  'Nachtdienst',
-  'Kochen',
-  'Schule',
-  'Freizeitaktivitäten',
-  'Management',
-  'Notfall'
-];
+function ShiftForm({ shift, onSave, onCancel, employees }) {
+  const availableQualifications = useMemo(() => {
+    // Sammle alle einzigartigen Qualifikationen aus den Mitarbeiterdaten
+    const qualSet = new Set();
+    employees.forEach(employee => {
+      employee.qualifications.forEach(qual => qualSet.add(qual));
+    });
+    return Array.from(qualSet).sort();
+  }, [employees]);
 
-function ShiftForm({ shift, onSave, onCancel }) {
   const [formData, setFormData] = useState({
     name: shift?.name || '',
     startTime: shift?.startTime || '07:00',
@@ -129,16 +127,34 @@ function ShiftForm({ shift, onSave, onCancel }) {
 
       <div className="form-group">
         <label className="form-label">Erforderliche Qualifikationen</label>
-        <div className="qualification-selection">
-          {availableQualifications.map((qualification) => (
-            <label key={qualification} className="qualification-checkbox">
-              <input
-                type="checkbox"
-                checked={formData.requiredQualifications.includes(qualification)}
-                onChange={() => handleQualificationToggle(qualification)}
-              />
+        <div className="qualification-input-group">
+          <select
+            className="form-select"
+            value=""
+            onChange={(e) => handleQualificationToggle(e.target.value)}
+          >
+            <option value="">Qualifikation auswählen...</option>
+            {availableQualifications
+              .filter(qual => !formData.requiredQualifications.includes(qual))
+              .map((qualification) => (
+                <option key={qualification} value={qualification}>
+                  {qualification}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div className="qualification-list">
+          {formData.requiredQualifications.map((qualification) => (
+            <div key={qualification} className="qualification-item">
               <span className="qualification-name">{qualification}</span>
-            </label>
+              <button
+                type="button"
+                className="button-icon"
+                onClick={() => handleQualificationToggle(qualification)}
+              >
+                ×
+              </button>
+            </div>
           ))}
         </div>
       </div>

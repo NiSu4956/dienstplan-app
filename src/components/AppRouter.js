@@ -40,13 +40,17 @@ const INITIAL_EMPLOYEES = [
   { id: 1, name: 'Sabine', role: 'Vollzeit', qualifications: ['WG1', 'WG2', 'Nachtdienst'] },
   { id: 2, name: 'Manu', role: 'Vollzeit', qualifications: ['WG1', 'Kochen'] },
   { id: 3, name: 'Levin', role: 'Teilzeit', qualifications: ['Schule', 'Freizeitaktivitäten'] },
-  { id: 4, name: 'CK', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'] },
-  { id: 5, name: 'Nelli', role: 'Teilzeit', qualifications: ['Kochen', 'WG1'] },
-  { id: 6, name: 'PD', role: ROLES.ADMIN, qualifications: ['Management', 'Notfall'] },
   { id: 7, name: 'Eva', role: 'Teilzeit', qualifications: ['WG1', 'Nachmittagsprogramm'] },
   { id: 8, name: 'Fabi', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'] },
-  { id: 9, name: 'Daniel', role: 'Teilzeit', qualifications: ['Nachmittagsprogramm'] },
-  { id: 10, name: 'Admin', role: ROLES.ADMIN, qualifications: ['Administration'] }
+  { id: 10, name: 'Admin', role: ROLES.ADMIN, qualifications: ['Administration'], password: 'Admin' }
+];
+
+const INITIAL_CHILDREN = [
+  { id: 1, name: 'Max', group: 'WG1' },
+  { id: 2, name: 'Lisa', group: 'WG1' },
+  { id: 3, name: 'Tom', group: 'WG2' },
+  { id: 4, name: 'Anna', group: 'WG2' },
+  { id: 5, name: 'Paul', group: 'WG1' }
 ];
 
 const INITIAL_SHIFT_TYPES = [
@@ -132,6 +136,7 @@ function AppRouter() {
   const [scheduleData, setScheduleData] = useState(INITIAL_SCHEDULE_DATA);
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [shiftTypes, setShiftTypes] = useState(INITIAL_SHIFT_TYPES);
+  const [children, setChildren] = useState(INITIAL_CHILDREN);
 
   useEffect(() => {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY);
@@ -283,8 +288,9 @@ function AppRouter() {
       setScheduleData={setScheduleData}
       isEditable={isEditable}
       currentUser={currentUser}
+      children={children}
     />
-  ), [employees, shiftTypes, scheduleData, currentUser]);
+  ), [employees, shiftTypes, scheduleData, currentUser, children]);
 
   return (
     <Router>
@@ -323,6 +329,8 @@ function AppRouter() {
                   requests={requests}
                   onApproveRequest={handleApproveRequest}
                   onRejectRequest={handleRejectRequest}
+                  children={children}
+                  setChildren={setChildren}
                 />
               </ProtectedRoute>
             } />

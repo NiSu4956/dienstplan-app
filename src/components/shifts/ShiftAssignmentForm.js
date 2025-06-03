@@ -297,20 +297,18 @@ function ShiftAssignmentForm({
 
           <div className="form-group">
             <label className="form-label">Beteiligte Mitarbeiter</label>
-            <div className="employee-selection">
+            <select
+              className="form-select"
+              value={customEmployeeIds[0] || ''}
+              onChange={(e) => setCustomEmployeeIds([parseInt(e.target.value)])}
+            >
+              <option value="">Bitte wählen...</option>
               {employees.map((employee) => (
-                <label key={employee.id} className="employee-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={customEmployeeIds.includes(employee.id)}
-                    onChange={() => handleEmployeeToggle(employee.id)}
-                  />
-                  <span className="employee-name">
-                    {employee.name}
-                  </span>
-                </label>
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           <div className="form-group">

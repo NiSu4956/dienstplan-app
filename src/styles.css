@@ -1675,3 +1675,196 @@ body {
   border-left-color: #ef4444;
   color: #991b1b;
 }
+
+.documentation-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.documentation-section h4 {
+  color: #1f2937;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.previous-documentations {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.documentation-entry {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.documentation-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.documentation-entry p {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.documentation-entry p:first-child {
+  color: #1f2937;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.documentation-entry p:nth-child(2) {
+  color: #374151;
+  font-size: 1rem;
+  white-space: pre-wrap;
+}
+
+.documentation-author {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+.success-message {
+  background-color: #10b981;
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  text-align: center;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.documentation-toggle-button {
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  transition: background-color 0.2s;
+}
+
+.documentation-toggle-button:hover {
+  background-color: #4338ca;
+}
+
+.documentation-toggle-button svg {
+  transition: transform 0.2s;
+}
+
+.documentation-toggle-button.open svg {
+  transform: rotate(180deg);
+}
+
+.documentation-list {
+  margin-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+}
+
+.documentation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.documentation-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+  color: #6b7280;
+}
+
+.icon-button:hover {
+  transform: scale(1.1);
+}
+
+.icon-button.edit:hover {
+  color: #4f46e5;
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+.icon-button.delete:hover {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.documentation-text {
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.documentation-entry {
+  position: relative;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+}
+
+.documentation-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.documentation-entry .form-group {
+  margin-bottom: 1rem;
+}
+
+.documentation-entry .documentation-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.documentation-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 1rem;
+}
