@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, Link, useLocation } from 'react-router-dom';
 import WeekView from './WeekView';
 import EmployeePortal from './EmployeePortal';
@@ -150,6 +150,16 @@ function AppRouter() {
     localStorage.removeItem(USER_STORAGE_KEY);
   }, []);
 
+  const updateRequestStatus = useCallback((request, status) => {
+    setRequests(prev => prev.map(r => 
+      r.id === request.id ? { 
+        ...r, 
+        status,
+        adminComment: request.adminComment 
+      } : r
+    ));
+  }, []);
+
   const createCustomShift = useCallback((request, employee) => ({
     id: Date.now() + Math.random(),
     isCustom: true,
@@ -180,15 +190,49 @@ function AppRouter() {
     }]);
   }, [currentUser, scheduleData]);
 
-  const updateRequestStatus = useCallback((request, status) => {
-    setRequests(prev => prev.map(r => 
-      r.id === request.id ? { 
-        ...r, 
-        status,
-        adminComment: request.adminComment 
-      } : r
-    ));
+  const getWeekNumber = useCallback((date) => {
+    const dateString = date.toISOString();
+    const cacheKey = `week_${dateString}`;
+    
+    if (dateCache.has(cacheKey)) {
+      return dateCache.get(cacheKey);
+    }
+
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const result = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    
+    dateCache.set(cacheKey, result);
+    return result;
   }, []);
+
+  const getDayName = useCallback((date) => DAYS_OF_WEEK[date.getDay()], []);
+
+  const getWeekKey = useCallback((date) => {
+    const dateString = date.toISOString();
+    if (dateCache.has(dateString)) {
+      return dateCache.get(dateString);
+    }
+
+    const weekNumber = getWeekNumber(date);
+    const year = date.getFullYear();
+    const startDate = new Date(date);
+    startDate.setDate(date.getDate() - date.getDay() + 1);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+
+    const formatDate = (d) => {
+      const day = d.getDate().toString().padStart(2, '0');
+      const month = (d.getMonth() + 1).toString().padStart(2, '0');
+      return `${day}.${month}`;
+    };
+
+    const key = `KW ${weekNumber} (${formatDate(startDate)} - ${formatDate(endDate)}.${year})`;
+    dateCache.set(dateString, key);
+    return key;
+  }, [getWeekNumber]);
 
   const handleApproveRequest = useCallback((request) => {
     updateRequestStatus(request, 'approved');
@@ -230,50 +274,6 @@ function AppRouter() {
   const handleRejectRequest = useCallback((request) => {
     updateRequestStatus(request, 'rejected');
   }, [updateRequestStatus]);
-
-  const getWeekKey = useCallback((date) => {
-    const dateString = date.toISOString();
-    if (dateCache.has(dateString)) {
-      return dateCache.get(dateString);
-    }
-
-    const weekNumber = getWeekNumber(date);
-    const year = date.getFullYear();
-    const startDate = new Date(date);
-    startDate.setDate(date.getDate() - date.getDay() + 1);
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-
-    const formatDate = (d) => {
-      const day = d.getDate().toString().padStart(2, '0');
-      const month = (d.getMonth() + 1).toString().padStart(2, '0');
-      return `${day}.${month}`;
-    };
-
-    const result = `KW ${weekNumber} (${formatDate(startDate)} - ${formatDate(endDate)}.${year})`;
-    dateCache.set(dateString, result);
-    return result;
-  }, [getWeekNumber]);
-
-  const getWeekNumber = useCallback((date) => {
-    const dateString = date.toISOString();
-    const cacheKey = `week_${dateString}`;
-    
-    if (dateCache.has(cacheKey)) {
-      return dateCache.get(cacheKey);
-    }
-
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const result = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    
-    dateCache.set(cacheKey, result);
-    return result;
-  }, []);
-
-  const getDayName = useCallback((date) => DAYS_OF_WEEK[date.getDay()], []);
 
   const renderWeekView = useCallback((isEditable = false) => (
     <WeekView 

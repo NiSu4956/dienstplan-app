@@ -1,4 +1,4 @@
-import { parse, eachDayOfInterval, format, isWithinInterval, parseISO, addDays } from 'date-fns';
+import { parse, eachDayOfInterval, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 const REQUEST_TYPES = {
@@ -60,27 +60,6 @@ export const handleRequestApproval = (request, scheduleData) => {
     success: true,
     message: 'Antrag erfolgreich genehmigt'
   };
-};
-
-const parseDate = (dateString) => {
-  if (!dateString) return null;
-  
-  // ISO-Format (YYYY-MM-DD)
-  const isoDate = new Date(dateString);
-  if (!isNaN(isoDate.getTime())) {
-    return isoDate;
-  }
-  
-  // Deutsches Format (DD.MM.YYYY)
-  const [day, month, year] = dateString.split('.').map(num => parseInt(num, 10));
-  if (day && month && year) {
-    const date = new Date(year, month - 1, day);
-    if (!isNaN(date.getTime())) {
-      return date;
-    }
-  }
-  
-  return null;
 };
 
 const validateRequestDates = (startDate, endDate) => {
@@ -162,29 +141,17 @@ const checkDayConflicts = (dayData, employeeId, date) => {
 };
 
 export const validateRequest = (request, scheduleData) => {
-  if (!request.startDate || !request.endDate) {
+  if (!request.startDate || !request.endDate || !request.type || !request.employeeId) {
     return {
       isValid: false,
-      message: 'Bitte Start- und Enddatum angeben.'
+      message: 'Bitte füllen Sie alle erforderlichen Felder aus.'
     };
   }
 
   const startDate = new Date(request.startDate);
   const endDate = new Date(request.endDate);
-
-  if (startDate > endDate) {
-    return {
-      isValid: false,
-      message: 'Das Startdatum muss vor dem Enddatum liegen.'
-    };
-  }
-
-  if (startDate < new Date()) {
-    return {
-      isValid: false,
-      message: 'Das Startdatum darf nicht in der Vergangenheit liegen.'
-    };
-  }
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 59, 59, 999);
 
   const dateValidation = validateRequestDates(startDate, endDate);
   if (!dateValidation.isValid) {
@@ -213,24 +180,18 @@ const formatDate = (date) => {
 };
 
 const getDayDateFromWeekAndDay = (weekKey, dayKey) => {
-  const match = weekKey.match(/(\d{2})\.(\d{2})\s*-\s*\d{2}\.\d{2}\.(\d{4})/);
-  if (!match) return null;
+  const weekMatch = weekKey.match(/KW \d+ \((\d{2}\.\d{2}) - \d{2}\.\d{2}\.(\d{4})\)/);
+  if (!weekMatch) return null;
 
-  const [, startDay, startMonth, year] = match;
-  const weekStart = new Date(year, parseInt(startMonth) - 1, parseInt(startDay));
-  
+  const [startDay, startMonth] = weekMatch[1].split('.').map(Number);
+  const year = parseInt(weekMatch[2]);
   const dayIndex = DAYS_OF_WEEK.indexOf(dayKey);
+  
   if (dayIndex === -1) return null;
   
-  const date = new Date(weekStart);
+  const date = new Date(year, startMonth - 1, startDay);
   date.setDate(date.getDate() + dayIndex);
   return date;
 };
 
-const getWeekIdentifier = (date) => {
-  return format(date, DATE_FORMATS.WEEK, { locale: de });
-};
-
-const getDayName = (date) => {
-  return format(date, DATE_FORMATS.DAY, { locale: de });
-}; 
+export { formatDate, getDayDateFromWeekAndDay }; 
