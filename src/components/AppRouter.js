@@ -21,21 +21,7 @@ const REQUEST_TYPES = {
 };
 
 // Memoized initial data
-const INITIAL_SCHEDULE_DATA = {
-  'KW 21 (19.05 - 25.05.2025)': {
-    'Montag': {
-      '7:00': [{ 
-        id: 1, 
-        employeeId: 1, 
-        name: 'Sabine', 
-        task: 'Frühdienst', 
-        type: 'blue',
-        shiftTypeId: 1,
-        notes: ''
-      }]
-    }
-  }
-};
+const INITIAL_SCHEDULE_DATA = {};
 
 const INITIAL_EMPLOYEES = [
   { id: 1, name: 'Sabine', role: 'Vollzeit', qualifications: ['WG1', 'WG2', 'Nachtdienst'] },
@@ -47,11 +33,22 @@ const INITIAL_EMPLOYEES = [
 ];
 
 const INITIAL_CHILDREN = [
-  { id: 1, name: 'Max', group: 'WG1' },
-  { id: 2, name: 'Lisa', group: 'WG1' },
-  { id: 3, name: 'Tom', group: 'WG2' },
-  { id: 4, name: 'Anna', group: 'WG2' },
-  { id: 5, name: 'Paul', group: 'WG1' }
+  { 
+    id: 1, 
+    name: 'Max Mustermann', 
+    group: 'WG1',
+    birthDate: '2018-05-15',
+    notes: 'Allergisch gegen Erdnüsse',
+    documentation: []
+  },
+  { 
+    id: 2, 
+    name: 'Lisa Schmidt', 
+    group: 'WG2',
+    birthDate: '2019-03-22',
+    notes: 'Nimmt regelmäßig Medikamente',
+    documentation: []
+  }
 ];
 
 const INITIAL_SHIFT_TYPES = [
@@ -135,12 +132,15 @@ function AppRouter() {
   const [currentUser, setCurrentUser] = useState(null);
   const [requests, setRequests] = useState([]);
   const [scheduleData, setScheduleData] = useState(() => {
-    const savedData = localStorage.getItem(SCHEDULE_DATA_KEY);
-    return savedData ? JSON.parse(savedData) : INITIAL_SCHEDULE_DATA;
+    // Während der Entwicklung immer mit leeren Daten starten
+    return INITIAL_SCHEDULE_DATA;
   });
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [shiftTypes, setShiftTypes] = useState(INITIAL_SHIFT_TYPES);
-  const [children, setChildren] = useState(INITIAL_CHILDREN);
+  const [children, setChildren] = useState(() => {
+    const savedChildren = localStorage.getItem('children');
+    return savedChildren ? JSON.parse(savedChildren) : INITIAL_CHILDREN;
+  });
 
   useEffect(() => {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY);
@@ -150,8 +150,13 @@ function AppRouter() {
   }, []);
 
   useEffect(() => {
+    // Speichere Änderungen weiterhin im localStorage während der Laufzeit
     localStorage.setItem(SCHEDULE_DATA_KEY, JSON.stringify(scheduleData));
   }, [scheduleData]);
+
+  useEffect(() => {
+    localStorage.setItem('children', JSON.stringify(children));
+  }, [children]);
 
   const handleLogin = useCallback((employee) => {
     setCurrentUser(employee);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Modal from './common/Modal';
 import ShiftAssignmentForm from './shifts/ShiftAssignmentForm';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { 
   organizeOverlappingShifts,
   checkEmployeeAvailability,
@@ -848,18 +848,23 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   
   const handlePdfExport = () => {
     const doc = new jsPDF({
-      orientation: 'landscape',
+      orientation: selectedDay ? 'portrait' : 'landscape', // Portrait für Tagesansicht, Landscape für Wochenansicht
       unit: 'mm',
       format: 'a4'
     });
     
     doc.setFontSize(16);
-    doc.text(`Dienstplan ${selectedWeek}`, 14, 15);
+    const title = selectedDay 
+      ? `Dienstplan ${selectedDay} ${formatWeekDayDate(selectedWeek, selectedDay)}` 
+      : `Dienstplan ${selectedWeek}`;
+    doc.text(title, 14, 15);
     
-    const tableHeaders = ['Zeit', ...days];
+    const tableHeaders = ['Zeit', ...(selectedDay ? [selectedDay] : days)];
     const tableData = timeSlots.map(time => {
       const row = [time];
-      days.forEach(day => {
+      const daysToProcess = selectedDay ? [selectedDay] : days;
+      
+      daysToProcess.forEach(day => {
         if (scheduleData[selectedWeek]?.[day]?.[time]) {
           const shifts = scheduleData[selectedWeek][day][time];
           const cellContent = shifts.map(shift => 
@@ -873,7 +878,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       return row;
     });
     
-    doc.autoTable({
+    autoTable(doc, {
       head: [tableHeaders],
       body: tableData,
       startY: 20,
@@ -889,7 +894,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         fontStyle: 'bold'
       },
       columnStyles: { 
-        0: { cellWidth: 15 }
+        0: { cellWidth: selectedDay ? 20 : 15 } // Breitere erste Spalte in der Tagesansicht
       },
       alternateRowStyles: { 
         fillColor: [245, 245, 245]
@@ -924,7 +929,10 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       doc.text(`Erstellt am: ${today} | Seite ${i} von ${pageCount}`, 14, doc.internal.pageSize.height - 10);
     }
     
-    doc.save(`Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`);
+    const filename = selectedDay 
+      ? `Dienstplan_${selectedDay}_${formatWeekDayDate(selectedWeek, selectedDay).replace(/\./g, '-')}.pdf`
+      : `Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`;
+    doc.save(filename);
   };
 
   const handleSaveDocumentation = () => {
@@ -1369,7 +1377,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
                                 <>
                                   <div className="documentation-header">
                                     <p>
-                                      <strong>{child?.name}</strong>
+                                      <strong>{child?.name || 'Gelöschtes Kind'}</strong>
                                       <span className="documentation-date">
                                         {new Date(doc.timestamp).toLocaleString('de-DE', {
                                           day: '2-digit',

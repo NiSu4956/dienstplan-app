@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../common/Modal';
 import { formatDate, formatDateTime, DATE_FORMATS } from '../../utils/dateUtils';
+import jsPDF from 'jspdf';
 
 // Hilfsfunktion zum Normalisieren des Datums (ohne Zeitzonenverschiebung)
 const normalizeDate = (date) => {
@@ -8,49 +9,12 @@ const normalizeDate = (date) => {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
 };
 
-function ChildrenManagement({ scheduleData, employees }) {
-  const [children, setChildren] = useState([]);
+function ChildrenManagement({ scheduleData, employees, children, setChildren }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentChild, setCurrentChild] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [documentationModalOpen, setDocumentationModalOpen] = useState(false);
   const [selectedChildForDocs, setSelectedChildForDocs] = useState(null);
-  const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const dropdownRef = useRef(null);
-
-  // Schließe Dropdown wenn außerhalb geklickt wird
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowExportDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Beispieldaten für Kinder - später durch echte Datenbank ersetzen
-  useEffect(() => {
-    setChildren([
-      { 
-        id: 1, 
-        name: 'Max Mustermann', 
-        birthDate: '2015-06-15', 
-        group: 'WG1', 
-        notes: 'Allergisch gegen Nüsse',
-        documentation: []
-      },
-      { 
-        id: 2, 
-        name: 'Anna Schmidt', 
-        birthDate: '2016-03-22', 
-        group: 'WG2', 
-        notes: 'Schwimmen am Dienstag',
-        documentation: []
-      },
-    ]);
-  }, []);
 
   // Funktion zum Extrahieren aller Dokumentationen aus dem Dienstplan
   const extractShiftDocumentations = () => {
@@ -158,61 +122,78 @@ function ChildrenManagement({ scheduleData, employees }) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setShowExportDropdown(false);
   };
 
   const handleExportPDF = () => {
     if (!selectedChildForDocs) return;
 
-    // Erstelle HTML-String für die Konvertierung
-    let htmlContent = `
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .doc-entry { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; }
-            .doc-meta { color: #666; font-size: 0.9em; margin-top: 10px; }
-            .doc-text { margin: 10px 0; }
-            .shift-info { font-style: italic; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Dokumentation für ${selectedChildForDocs.name}</h1>
-            <p>Erstellt am ${formatDateTime(new Date())}</p>
-          </div>
-    `;
+    try {
+      // Erstelle ein neues PDF-Dokument
+      const doc = new jsPDF();
+      let yPos = 20;
+      const pageWidth = doc.internal.pageSize.width;
+      const margin = 20;
+      const contentWidth = pageWidth - 2 * margin;
 
-    selectedChildForDocs.documentation.forEach(doc => {
-      const shiftDate = doc.shiftInfo?.date ? formatDate(normalizeDate(doc.shiftInfo.date)) : '';
-      htmlContent += `
-        <div class="doc-entry">
-          <div class="shift-info">
-            Schicht am ${shiftDate}
-            ${doc.shiftInfo ? ` - ${doc.shiftInfo.type}` : ''}
-            ${doc.shiftInfo?.startTime ? ` (${doc.shiftInfo.startTime} - ${doc.shiftInfo.endTime} Uhr)` : ''}
-          </div>
-          <div class="doc-text">${doc.text}</div>
-          <div class="doc-meta">
-            Dokumentiert von: ${doc.employeeName}<br>
-            Erstellt am: ${formatDateTime(doc.timestamp)}
-            ${doc.lastModified && doc.lastModified !== doc.timestamp 
-              ? `<br>Zuletzt bearbeitet: ${formatDateTime(doc.lastModified)}`
-              : ''}
-          </div>
-        </div>
-      `;
-    });
+      // Titel
+      doc.setFontSize(16);
+      doc.text(`Dokumentation für ${selectedChildForDocs.name}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
 
-    htmlContent += '</body></html>';
+      // Erstellungsdatum
+      doc.setFontSize(12);
+      doc.text(`Erstellt am ${formatDateTime(new Date())}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 20;
 
-    // Öffne das HTML in einem neuen Fenster zum Drucken/PDF-Export
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.print();
-    setShowExportDropdown(false);
+      // Dokumentationseinträge
+      selectedChildForDocs.documentation.forEach(entry => {
+        const shiftDate = entry.shiftInfo?.date ? formatDate(normalizeDate(entry.shiftInfo.date)) : '';
+        const shiftType = entry.shiftInfo?.type || '';
+        const shiftTime = entry.shiftInfo?.startTime && entry.shiftInfo?.endTime 
+          ? `(${entry.shiftInfo.startTime} - ${entry.shiftInfo.endTime} Uhr)` 
+          : '';
+
+        // Neue Seite wenn nötig
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Schichtinformationen
+        doc.setFontSize(11);
+        doc.setFont('Helvetica', 'italic');
+        doc.text(`Schicht am ${shiftDate} ${shiftType} ${shiftTime}`, margin, yPos);
+        yPos += 7;
+
+        // Dokumentationstext
+        doc.setFont('Helvetica', 'normal');
+        const splitText = doc.splitTextToSize(entry.text, contentWidth);
+        doc.text(splitText, margin, yPos);
+        yPos += splitText.length * 7;
+
+        // Metadaten
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100); // Grau
+        doc.text(`Dokumentiert von: ${entry.employeeName}`, margin, yPos);
+        yPos += 5;
+        doc.text(`Erstellt am: ${formatDateTime(entry.timestamp)}`, margin, yPos);
+        
+        if (entry.lastModified && entry.lastModified !== entry.timestamp) {
+          yPos += 5;
+          doc.text(`Zuletzt bearbeitet: ${formatDateTime(entry.lastModified)}`, margin, yPos);
+        }
+        yPos += 15;
+
+        // Textfarbe zurücksetzen
+        doc.setTextColor(0, 0, 0);
+      });
+
+      // PDF speichern
+      doc.save(`dokumentation_${selectedChildForDocs.name}_${formatDate(new Date())}.pdf`);
+    } catch (error) {
+      console.error('Fehler beim PDF-Export:', error);
+      alert('Beim Erstellen des PDFs ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
+    }
   };
 
   const filteredChildren = children.filter(child =>
@@ -435,20 +416,6 @@ function DocumentationForm({ child, onCancel }) {
   const [entry, setEntry] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const dropdownRef = useRef(null);
-
-  // Schließe Dropdown wenn außerhalb geklickt wird
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowExportDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleExportCSV = () => {
     if (!child) return;
@@ -480,61 +447,78 @@ function DocumentationForm({ child, onCancel }) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setShowExportDropdown(false);
   };
 
   const handleExportPDF = () => {
     if (!child) return;
 
-    // Erstelle HTML-String für die Konvertierung
-    let htmlContent = `
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .doc-entry { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; }
-            .doc-meta { color: #666; font-size: 0.9em; margin-top: 10px; }
-            .doc-text { margin: 10px 0; }
-            .shift-info { font-style: italic; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Dokumentation für ${child.name}</h1>
-            <p>Erstellt am ${formatDateTime(new Date())}</p>
-          </div>
-    `;
+    try {
+      // Erstelle ein neues PDF-Dokument
+      const doc = new jsPDF();
+      let yPos = 20;
+      const pageWidth = doc.internal.pageSize.width;
+      const margin = 20;
+      const contentWidth = pageWidth - 2 * margin;
 
-    child.documentation.forEach(doc => {
-      const shiftDate = doc.shiftInfo?.date ? formatDate(normalizeDate(doc.shiftInfo.date)) : '';
-      htmlContent += `
-        <div class="doc-entry">
-          <div class="shift-info">
-            Schicht am ${shiftDate}
-            ${doc.shiftInfo ? ` - ${doc.shiftInfo.type}` : ''}
-            ${doc.shiftInfo?.startTime ? ` (${doc.shiftInfo.startTime} - ${doc.shiftInfo.endTime} Uhr)` : ''}
-          </div>
-          <div class="doc-text">${doc.text}</div>
-          <div class="doc-meta">
-            Dokumentiert von: ${doc.employeeName}<br>
-            Erstellt am: ${formatDateTime(doc.timestamp)}
-            ${doc.lastModified && doc.lastModified !== doc.timestamp 
-              ? `<br>Zuletzt bearbeitet: ${formatDateTime(doc.lastModified)}`
-              : ''}
-          </div>
-        </div>
-      `;
-    });
+      // Titel
+      doc.setFontSize(16);
+      doc.text(`Dokumentation für ${child.name}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
 
-    htmlContent += '</body></html>';
+      // Erstellungsdatum
+      doc.setFontSize(12);
+      doc.text(`Erstellt am ${formatDateTime(new Date())}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 20;
 
-    // Öffne das HTML in einem neuen Fenster zum Drucken/PDF-Export
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.print();
-    setShowExportDropdown(false);
+      // Dokumentationseinträge
+      child.documentation.forEach(entry => {
+        const shiftDate = entry.shiftInfo?.date ? formatDate(normalizeDate(entry.shiftInfo.date)) : '';
+        const shiftType = entry.shiftInfo?.type || '';
+        const shiftTime = entry.shiftInfo?.startTime && entry.shiftInfo?.endTime 
+          ? `(${entry.shiftInfo.startTime} - ${entry.shiftInfo.endTime} Uhr)` 
+          : '';
+
+        // Neue Seite wenn nötig
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Schichtinformationen
+        doc.setFontSize(11);
+        doc.setFont('Helvetica', 'italic');
+        doc.text(`Schicht am ${shiftDate} ${shiftType} ${shiftTime}`, margin, yPos);
+        yPos += 7;
+
+        // Dokumentationstext
+        doc.setFont('Helvetica', 'normal');
+        const splitText = doc.splitTextToSize(entry.text, contentWidth);
+        doc.text(splitText, margin, yPos);
+        yPos += splitText.length * 7;
+
+        // Metadaten
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100); // Grau
+        doc.text(`Dokumentiert von: ${entry.employeeName}`, margin, yPos);
+        yPos += 5;
+        doc.text(`Erstellt am: ${formatDateTime(entry.timestamp)}`, margin, yPos);
+        
+        if (entry.lastModified && entry.lastModified !== entry.timestamp) {
+          yPos += 5;
+          doc.text(`Zuletzt bearbeitet: ${formatDateTime(entry.lastModified)}`, margin, yPos);
+        }
+        yPos += 15;
+
+        // Textfarbe zurücksetzen
+        doc.setTextColor(0, 0, 0);
+      });
+
+      // PDF speichern
+      doc.save(`dokumentation_${child.name}_${formatDate(new Date())}.pdf`);
+    } catch (error) {
+      console.error('Fehler beim PDF-Export:', error);
+      alert('Beim Erstellen des PDFs ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
+    }
   };
 
   const handleSubmit = (e) => {
@@ -598,36 +582,35 @@ function DocumentationForm({ child, onCancel }) {
   return (
     <div className="documentation-view">
       <div className="documentation-header">
-        <h3>Dokumentation für {child?.name}</h3>
-        <div className="header-actions">
-          <div className="documentation-filters">
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Alle Einträge</option>
-              <option value="today">Heute</option>
-              <option value="week">Letzte Woche</option>
-              <option value="month">Letzter Monat</option>
-              <option value="year">Letztes Jahr</option>
-            </select>
-          </div>
-          
-          <div className="export-dropdown" ref={dropdownRef}>
-            <button 
-              className="button secondary"
-              onClick={() => setShowExportDropdown(!showExportDropdown)}
-            >
-              Download ▼
-            </button>
-            {showExportDropdown && (
-              <div className="dropdown-menu">
-                <button onClick={handleExportCSV}>Als CSV exportieren</button>
-                <button onClick={handleExportPDF}>Als PDF exportieren</button>
-              </div>
-            )}
-          </div>
+        <div className="header-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <select
+            value={selectedFilter}
+            onChange={(e) => setSelectedFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">Alle Einträge</option>
+            <option value="today">Heute</option>
+            <option value="week">Letzte Woche</option>
+            <option value="month">Letzter Monat</option>
+            <option value="year">Letztes Jahr</option>
+          </select>
+
+          <select
+            className="filter-select"
+            value=""
+            onChange={(e) => {
+              if (e.target.value === 'csv') {
+                handleExportCSV();
+              } else if (e.target.value === 'pdf') {
+                handleExportPDF();
+              }
+              e.target.value = ''; // Reset nach der Auswahl
+            }}
+          >
+            <option value="">Download ▼</option>
+            <option value="csv">Als CSV exportieren</option>
+            <option value="pdf">Als PDF exportieren</option>
+          </select>
         </div>
       </div>
 
