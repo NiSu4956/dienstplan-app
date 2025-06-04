@@ -6,19 +6,7 @@ import AdminArea from './AdminArea';
 import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import { validateRequest } from '../utils/requestHandler';
-
-const USER_STORAGE_KEY = 'currentUser';
-const SCHEDULE_DATA_KEY = 'scheduleData';
-const DEFAULT_TIME_SLOT = '07:00';
-
-const ROLES = {
-  ADMIN: 'admin'
-};
-
-const REQUEST_TYPES = {
-  VACATION: 'vacation',
-  SICK: 'sick'
-};
+import { STORAGE_KEYS, ROLES, REQUEST_TYPES, DEFAULT_TIME_SLOT, DAYS_OF_WEEK } from '../constants';
 
 // Memoized initial data
 const INITIAL_SCHEDULE_DATA = {};
@@ -59,8 +47,6 @@ const INITIAL_SHIFT_TYPES = [
   { id: 5, name: 'Kochen', startTime: '11:00', endTime: '14:00', color: 'red' },
   { id: 6, name: 'Wochenende', startTime: '09:00', endTime: '21:00', color: 'yellow' }
 ];
-
-const DAYS_OF_WEEK = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
 // Memoized Navigation component
 const Navigation = memo(({ currentUser, onLogout }) => {
@@ -138,12 +124,12 @@ function AppRouter() {
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [shiftTypes, setShiftTypes] = useState(INITIAL_SHIFT_TYPES);
   const [children, setChildren] = useState(() => {
-    const savedChildren = localStorage.getItem('children');
+    const savedChildren = localStorage.getItem(STORAGE_KEYS.CHILDREN);
     return savedChildren ? JSON.parse(savedChildren) : INITIAL_CHILDREN;
   });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem(USER_STORAGE_KEY);
+    const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
     }
@@ -151,21 +137,21 @@ function AppRouter() {
 
   useEffect(() => {
     // Speichere Änderungen weiterhin im localStorage während der Laufzeit
-    localStorage.setItem(SCHEDULE_DATA_KEY, JSON.stringify(scheduleData));
+    localStorage.setItem(STORAGE_KEYS.SCHEDULE_DATA, JSON.stringify(scheduleData));
   }, [scheduleData]);
 
   useEffect(() => {
-    localStorage.setItem('children', JSON.stringify(children));
+    localStorage.setItem(STORAGE_KEYS.CHILDREN, JSON.stringify(children));
   }, [children]);
 
   const handleLogin = useCallback((employee) => {
     setCurrentUser(employee);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(employee));
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(employee));
   }, []);
 
   const handleLogout = useCallback(() => {
     setCurrentUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.USER);
   }, []);
 
   const updateRequestStatus = useCallback((request, status) => {
@@ -226,7 +212,12 @@ function AppRouter() {
     return result;
   }, []);
 
-  const getDayName = useCallback((date) => DAYS_OF_WEEK[date.getDay()], []);
+  const getDayName = useCallback((date) => {
+    const day = date.getDay();
+    // In JavaScript ist Sonntag 0, wir brauchen aber Montag als 0
+    const adjustedDay = day === 0 ? 6 : day - 1;
+    return DAYS_OF_WEEK[adjustedDay];
+  }, []);
 
   const getWeekKey = useCallback((date) => {
     const dateString = date.toISOString();

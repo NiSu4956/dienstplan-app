@@ -1,74 +1,74 @@
-import React from 'react';
+import React, { memo } from 'react';
+import { isUserShift, getEmployeeNames } from '../../utils/commonUtils';
 
-const ShiftCard = ({ 
+const ShiftCard = memo(({ 
   shift, 
-  shiftType, 
+  shiftType,
+  employees, 
   isSelected, 
+  isEditable, 
   onShiftClick, 
-  isEditable 
+  style,
+  currentUser 
 }) => {
-  const shiftStyle = {
-    position: 'absolute',
-    top: `${shift.top}px`,
-    height: `${shift.height}px`,
-    width: shift.width || '100%',
-    left: shift.left || '0'
-  };
-
-  if (shift.isCustom) {
-    const isAbsence = shift.type === 'vacation' || shift.type === 'sick';
-    const cardClassName = `shift-card custom-entry shift-${shift.type} ${isAbsence ? 'absence-entry' : ''} ${isSelected ? 'selected' : ''}`;
-
-    return (
-      <div
-        key={shift.id}
-        className={cardClassName}
-        style={shiftStyle}
-        onClick={onShiftClick}
-      >
-        <div className="shift-header">
-          <div className="shift-type">
-            {isAbsence ? (
-              shift.type === 'vacation' ? 'Urlaub' : 'Krank'
-            ) : shift.customTitle}
-          </div>
-          <div className="shift-employee">
-            {shift.customEmployeeIds ? 
-              shift.customEmployeeIds.map(empId => shift.employees?.find(e => e.id === parseInt(empId))?.name).join(', ') : 
-              shift.name
-            }
-          </div>
-          {shift.notes && (
-            <div className="shift-notes">{shift.notes}</div>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const isCustom = shift.isCustom;
+  const isAbsence = isCustom && (shift.type === 'vacation' || shift.type === 'sick');
+  const isCurrentUserShift = isUserShift(shift, currentUser);
+  
+  const cardClassName = `shift-card ${
+    isCustom ? `custom-entry shift-${shift.type}` : `shift-${shiftType?.color || 'gray'}`
+  } ${isAbsence ? 'absence-entry' : ''} ${
+    isSelected ? 'selected' : ''
+  } ${isCurrentUserShift ? 'user-shift' : ''}`;
 
   return (
     <div
-      key={shift.id}
-      className={`shift-card shift-${shiftType?.color || 'gray'} ${isSelected ? 'selected' : ''}`}
-      style={shiftStyle}
-      onClick={onShiftClick}
+      className={cardClassName}
+      style={style}
+      onClick={(isEditable || isCurrentUserShift) ? onShiftClick : undefined}
+      title={isCurrentUserShift && !isEditable ? "Klicken Sie hier, um Details zu Ihrer Schicht zu sehen" : undefined}
     >
       <div className="shift-header">
-        <div className="shift-type">{shiftType?.name}</div>
-        <div className="shift-employee">{shift.name}</div>
-        {shift.tasks?.length > 0 && (
-          <div className="shift-notes">
-            <strong>Aufgaben:</strong> {shift.tasks.join(', ')}
+        {isAbsence ? (
+          <div className="absence-header">
+            <span className="absence-type">
+              {shift.type === 'vacation' ? (
+                <>
+                  <span className="absence-icon">🏖️</span>
+                  <span className="absence-employee-name">{getEmployeeNames(shift, employees)} - Urlaub</span>
+                </>
+              ) : (
+                <>
+                  <span className="absence-icon">🤒</span>
+                  <span className="absence-employee-name">{getEmployeeNames(shift, employees)} - Krank</span>
+                </>
+              )}
+            </span>
           </div>
-        )}
-        {shift.notes && (
-          <div className="shift-notes">
-            <strong>Notizen:</strong> {shift.notes}
-          </div>
+        ) : (
+          <>
+            <div className="shift-type">
+              {isCustom ? shift.customTitle : shiftType?.name}
+            </div>
+            <div className="shift-employee">
+              {getEmployeeNames(shift, employees)}
+            </div>
+            {shift.tasks?.length > 0 && (
+              <div className="shift-notes">
+                <strong>Aufgaben:</strong> {shift.tasks.join(', ')}
+              </div>
+            )}
+            {shift.notes && (
+              <div className="shift-notes">{shift.notes}</div>
+            )}
+          </>
         )}
       </div>
+      {isSelected && isEditable && (
+        <div className="shift-selected-indicator" />
+      )}
     </div>
   );
-};
+});
 
 export default ShiftCard; 

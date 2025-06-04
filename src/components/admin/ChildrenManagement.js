@@ -2,12 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../common/Modal';
 import { formatDate, formatDateTime, DATE_FORMATS } from '../../utils/dateUtils';
 import jsPDF from 'jspdf';
-
-// Hilfsfunktion zum Normalisieren des Datums (ohne Zeitzonenverschiebung)
-const normalizeDate = (date) => {
-  const d = new Date(date);
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
-};
+import { normalizeDate, getDayDateFromWeek } from '../../utils/commonUtils';
 
 function ChildrenManagement({ scheduleData, employees, children, setChildren }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,22 +44,6 @@ function ChildrenManagement({ scheduleData, employees, children, setChildren }) 
     });
     
     return allDocs;
-  };
-
-  // Hilfsfunktion zum Extrahieren des Datums aus der Woche
-  const getDayDateFromWeek = (weekKey, day) => {
-    const weekMatch = weekKey.match(/KW \d+ \((\d{2}\.\d{2}) - \d{2}\.\d{2}\.(\d{4})\)/);
-    if (!weekMatch) return new Date().toISOString();
-
-    const [startDay, startMonth] = weekMatch[1].split('.').map(Number);
-    const year = parseInt(weekMatch[2]);
-    const dayIndex = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'].indexOf(day);
-    
-    if (dayIndex === -1) return new Date().toISOString();
-    
-    const date = new Date(year, startMonth - 1, startDay);
-    date.setDate(date.getDate() + dayIndex);
-    return date.toISOString();
   };
 
   // Aktualisiere die Kinder mit den Dokumentationen aus den Schichten

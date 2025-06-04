@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Modal from './common/Modal';
 import ShiftAssignmentForm from './shifts/ShiftAssignmentForm';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import ShiftCard from './shifts/ShiftCard';
 import { 
   organizeOverlappingShifts,
   checkEmployeeAvailability,
@@ -13,88 +12,18 @@ import {
   parseDate
 } from '../utils/shiftUtils';
 import { formatDate, DATE_FORMATS } from '../utils/dateUtils';
-
-// Memoized Shift Card Component
-const ShiftCard = memo(({ 
-  shift, 
-  shiftType,
-  employees, 
-  isSelected, 
-  isEditable, 
-  onShiftClick, 
-  style,
-  currentUser 
-}) => {
-  const isCustom = shift.isCustom;
-  const isAbsence = isCustom && (shift.type === 'vacation' || shift.type === 'sick');
-  const isUserShift = currentUser && (
-    (isCustom && shift.customEmployeeIds?.includes(currentUser.id)) ||
-    (!isCustom && shift.employeeId === currentUser.id)
-  );
-  const cardClassName = `shift-card ${isCustom ? `custom-entry shift-${shift.type}` : `shift-${shiftType?.color || 'gray'}`} ${isAbsence ? 'absence-entry' : ''} ${isSelected ? 'selected' : ''} ${isUserShift ? 'user-shift' : ''}`;
-
-  // Hilfsfunktion zum Formatieren der Mitarbeiternamen
-  const getEmployeeNames = () => {
-    if (!isCustom || !shift.customEmployeeIds) return shift.name;
-    
-    return shift.customEmployeeIds
-      .map(empId => {
-        const employee = employees.find(e => e.id === parseInt(empId));
-        return employee ? employee.name : '';
-      })
-      .filter(name => name)
-      .join(', ');
-  };
-
-  return (
-    <div
-      className={cardClassName}
-      style={style}
-      onClick={(isEditable || isUserShift) ? onShiftClick : undefined}
-      title={isUserShift && !isEditable ? "Klicken Sie hier, um Details zu Ihrer Schicht zu sehen" : undefined}
-    >
-      <div className="shift-header">
-        {isAbsence ? (
-          <div className="absence-header">
-            <span className="absence-type">
-              {shift.type === 'vacation' ? (
-                <>
-                  <span className="absence-icon">🏖️</span>
-                  <span className="absence-employee-name">{getEmployeeNames()} - Urlaub</span>
-                </>
-              ) : (
-                <>
-                  <span className="absence-icon">🤒</span>
-                  <span className="absence-employee-name">{getEmployeeNames()} - Krank</span>
-                </>
-              )}
-            </span>
-          </div>
-        ) : (
-          <>
-            <div className="shift-type">
-              {isCustom ? shift.customTitle : shiftType?.name}
-            </div>
-            <div className="shift-employee">
-              {getEmployeeNames()}
-            </div>
-            {shift.tasks?.length > 0 && (
-              <div className="shift-notes">
-                <strong>Aufgaben:</strong> {shift.tasks.join(', ')}
-              </div>
-            )}
-            {shift.notes && (
-              <div className="shift-notes">{shift.notes}</div>
-            )}
-          </>
-        )}
-      </div>
-      {isSelected && isEditable && (
-        <div className="shift-selected-indicator" />
-      )}
-    </div>
-  );
-});
+import { DAYS_OF_WEEK, TIME_SLOTS } from '../constants';
+import { exportScheduleAsPDF } from '../utils/pdfExport';
+import { 
+  handleShiftSave as handleShiftSaveUtil,
+  updateScheduleWithNewShift,
+  deleteShiftFromSchedule
+} from '../utils/shiftManagement';
+import {
+  addDocumentationToShift,
+  updateDocumentationInShift,
+  deleteDocumentationFromShift
+} from '../utils/documentationManagement';
 
 // Memoized Schedule Cell Component
 const ScheduleCell = memo(({ 
@@ -150,9 +79,8 @@ const ScheduleCell = memo(({
 });
 
 function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEditable = false, currentUser, children }) {
-  const days = useMemo(() => ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'], []);
-  const timeSlots = useMemo(() => ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
-                     '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'], []);
+  const days = useMemo(() => DAYS_OF_WEEK, []);
+  const timeSlots = useMemo(() => TIME_SLOTS, []);
   
 
   const [weeks] = useState([
@@ -630,176 +558,37 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
 
   // Schicht-Funktionen
   const handleSaveShift = (shiftData) => {
-    const { 
-      date, 
-      time, 
-      employeeId, 
-      shiftTypeId, 
-      notes, 
-      isCustom, 
-      customTitle, 
-      customStartTime, 
-      customEndTime, 
-      customColor,
-      customEmployeeIds 
-    } = shiftData;
-    
-    // Prüfe auf doppelte Schichten
-    if (!isCustom && checkDuplicateShifts(date, parseInt(shiftTypeId), currentShift?.id, scheduleData, selectedWeek)) {
-      const shiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
-      alert(`Diese Schicht (${shiftType?.name}) wurde bereits für diesen Tag vergeben!`);
-      return;
-    }
-
-    // Erstelle temporäre Schicht für Verfügbarkeitsprüfung
-    const tempShift = {
-      isCustom,
-      customStartTime,
-      customEndTime,
-      shiftTypeId: parseInt(shiftTypeId),
-      employeeId: parseInt(employeeId)
-    };
-
-    // Prüfe Verfügbarkeit für alle betroffenen Mitarbeiter
-    const employeesToCheck = isCustom ? customEmployeeIds : [employeeId];
-    
-    for (const empId of employeesToCheck) {
-      const availability = checkEmployeeAvailability(
-        parseInt(empId),
-        tempShift,
-        currentShift?.id,
+    try {
+      const newShift = handleShiftSaveUtil({
+        shiftData,
+        currentShift,
         scheduleData,
         selectedWeek,
-        modalData.day,
-        shiftTypes
+        modalData,
+        shiftTypes,
+        employees
+      });
+
+      const updatedScheduleData = updateScheduleWithNewShift(
+        scheduleData,
+        selectedWeek,
+        shiftData.date,
+        shiftData.time,
+        newShift,
+        currentShift
       );
 
-      if (!availability.available) {
-        const conflictingShiftType = availability.conflictingShift.isCustom 
-          ? null 
-          : shiftTypes.find(t => t.id === availability.conflictingShift.shiftTypeId);
-
-        alert(`${availability.employee.name} ist bereits in einer anderen Schicht eingeteilt:\n` +
-          `${availability.conflictingShift.isCustom 
-            ? availability.conflictingShift.customTitle 
-            : conflictingShiftType?.name
-          } (${availability.conflictingShift.isCustom 
-            ? `${availability.conflictingShift.customStartTime} - ${availability.conflictingShift.customEndTime}`
-            : `${conflictingShiftType?.startTime} - ${conflictingShiftType?.endTime}`
-          })`);
-        return;
-      }
+      setScheduleData(updatedScheduleData);
+      setModalOpen(false);
+      setCurrentShift(null);
+    } catch (error) {
+      alert(error.message);
     }
-    
-    let newShift;
-    
-    // Hole die existierenden Dokumentationen aus der aktuellen Schicht
-    const existingDocumentations = currentShift?.documentations || [];
-    
-    if (isCustom) {
-      // Stelle sicher, dass die IDs als Zahlen gespeichert werden
-      const employeeIdsAsNumbers = (customEmployeeIds || []).map(id => parseInt(id));
-      const mainEmployee = employees.find(e => e.id === employeeIdsAsNumbers[0]);
-      
-      newShift = {
-        id: currentShift ? currentShift.id : Date.now(),
-        isCustom: true,
-        customTitle,
-        customStartTime,
-        customEndTime,
-        customColor,
-        customEmployeeIds: employeeIdsAsNumbers,
-        notes,
-        type: customColor,
-        name: mainEmployee ? mainEmployee.name : customTitle,
-        documentations: existingDocumentations
-      };
-    } else {
-      const employee = employees.find(e => e.id === parseInt(employeeId));
-      const shiftType = shiftTypes.find(t => t.id === parseInt(shiftTypeId));
-      
-      if (!employee || !shiftType) return;
-      
-      newShift = {
-        id: currentShift ? currentShift.id : Date.now(),
-        employeeId: parseInt(employeeId),
-        name: employee.name,
-        shiftTypeId: parseInt(shiftTypeId),
-        task: shiftType.name,
-        tasks: shiftType.tasks || [],
-        type: shiftType.color,
-        notes,
-        isCustom: false,
-        documentations: existingDocumentations
-      };
-    }
-    
-    setScheduleData(prev => {
-      const newData = { ...prev };
-      
-      // Wenn es sich um eine Bearbeitung handelt, entferne den alten Eintrag
-      if (currentShift) {
-        if (newData[selectedWeek]?.[date]) {
-          Object.keys(newData[selectedWeek][date]).forEach(timeSlot => {
-            newData[selectedWeek][date][timeSlot] = newData[selectedWeek][date][timeSlot]
-              .filter(shift => shift.id !== currentShift.id);
-            
-            if (newData[selectedWeek][date][timeSlot].length === 0) {
-              delete newData[selectedWeek][date][timeSlot];
-            }
-          });
-          
-          if (Object.keys(newData[selectedWeek][date]).length === 0) {
-            delete newData[selectedWeek][date];
-          }
-        }
-      }
-      
-      // Füge den neuen/bearbeiteten Eintrag hinzu
-      if (!newData[selectedWeek]) newData[selectedWeek] = {};
-      if (!newData[selectedWeek][date]) newData[selectedWeek][date] = {};
-      if (!newData[selectedWeek][date][time]) newData[selectedWeek][date][time] = [];
-      
-      newData[selectedWeek][date][time].push(newShift);
-      
-      return newData;
-    });
-    
-    setModalOpen(false);
-    setCurrentShift(null);
   };
   
   const handleDeleteShift = (day, time, shiftId) => {
-    setScheduleData(prev => {
-      const newData = { ...prev };
-      
-      // Wenn es sich um einen Urlaubs- oder Krankheitseintrag handelt, 
-      // oder wir in der Tagesansicht sind,
-      // müssen wir in allen Zeitslots des Tages suchen
-      if (newData[selectedWeek]?.[day]) {
-        // Durchsuche alle Zeitslots des Tages
-        Object.keys(newData[selectedWeek][day]).forEach(timeSlot => {
-          if (newData[selectedWeek][day][timeSlot]) {
-            const filteredShifts = newData[selectedWeek][day][timeSlot].filter(s => s.id !== shiftId);
-            if (filteredShifts.length === 0) {
-              delete newData[selectedWeek][day][timeSlot];
-            } else {
-              newData[selectedWeek][day][timeSlot] = filteredShifts;
-            }
-          }
-        });
-
-        // Bereinige leere Strukturen
-        if (Object.keys(newData[selectedWeek][day]).length === 0) {
-          delete newData[selectedWeek][day];
-        }
-        if (Object.keys(newData[selectedWeek]).length === 0) {
-          delete newData[selectedWeek];
-        }
-      }
-      
-      return newData;
-    });
+    const updatedScheduleData = deleteShiftFromSchedule(scheduleData, selectedWeek, day, shiftId);
+    setScheduleData(updatedScheduleData);
   };
   
   // Navigation
@@ -847,141 +636,43 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   };
   
   const handlePdfExport = () => {
-    const doc = new jsPDF({
-      orientation: selectedDay ? 'portrait' : 'landscape', // Portrait für Tagesansicht, Landscape für Wochenansicht
-      unit: 'mm',
-      format: 'a4'
+    exportScheduleAsPDF({
+      selectedDay,
+      selectedWeek,
+      days,
+      timeSlots,
+      scheduleData,
+      formatWeekDayDate
     });
-    
-    doc.setFontSize(16);
-    const title = selectedDay 
-      ? `Dienstplan ${selectedDay} ${formatWeekDayDate(selectedWeek, selectedDay)}` 
-      : `Dienstplan ${selectedWeek}`;
-    doc.text(title, 14, 15);
-    
-    const tableHeaders = ['Zeit', ...(selectedDay ? [selectedDay] : days)];
-    const tableData = timeSlots.map(time => {
-      const row = [time];
-      const daysToProcess = selectedDay ? [selectedDay] : days;
-      
-      daysToProcess.forEach(day => {
-        if (scheduleData[selectedWeek]?.[day]?.[time]) {
-          const shifts = scheduleData[selectedWeek][day][time];
-          const cellContent = shifts.map(shift => 
-            `${shift.name} (${shift.task})${shift.notes ? `\n↪ ${shift.notes}` : ''}`
-          ).join("\n");
-          row.push(cellContent);
-        } else {
-          row.push('');
-        }
-      });
-      return row;
-    });
-    
-    autoTable(doc, {
-      head: [tableHeaders],
-      body: tableData,
-      startY: 20,
-      styles: { 
-        fontSize: 8,
-        cellPadding: 2,
-        overflow: 'linebreak',
-        cellWidth: 'wrap'
-      },
-      headStyles: { 
-        fillColor: [79, 70, 229],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      columnStyles: { 
-        0: { cellWidth: selectedDay ? 20 : 15 } // Breitere erste Spalte in der Tagesansicht
-      },
-      alternateRowStyles: { 
-        fillColor: [245, 245, 245]
-      },
-      theme: 'grid',
-      margin: { top: 20, right: 14, bottom: 20, left: 14 },
-      didParseCell: function(data) {
-        if (data.section === 'body' && data.column.index > 0) {
-          const text = data.cell.text.join('');
-          if (text.includes('Frühdienst')) {
-            data.cell.styles.fillColor = [219, 234, 254];
-          } else if (text.includes('Tagesdienst')) {
-            data.cell.styles.fillColor = [220, 252, 231];
-          } else if (text.includes('Spätdienst')) {
-            data.cell.styles.fillColor = [243, 232, 255];
-          } else if (text.includes('Nachtdienst')) {
-            data.cell.styles.fillColor = [229, 231, 235];
-          } else if (text.includes('Kochen')) {
-            data.cell.styles.fillColor = [254, 226, 226];
-          } else if (text.includes('Wochenende')) {
-            data.cell.styles.fillColor = [254, 249, 195];
-          }
-        }
-      }
-    });
-    
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      const today = new Date().toLocaleDateString('de-DE');
-      doc.setFontSize(8);
-      doc.text(`Erstellt am: ${today} | Seite ${i} von ${pageCount}`, 14, doc.internal.pageSize.height - 10);
-    }
-    
-    const filename = selectedDay 
-      ? `Dienstplan_${selectedDay}_${formatWeekDayDate(selectedWeek, selectedDay).replace(/\./g, '-')}.pdf`
-      : `Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`;
-    doc.save(filename);
   };
 
   const handleSaveDocumentation = () => {
     if (!selectedChild || !documentation.trim()) return;
 
-    const newDoc = {
-      id: Date.now().toString(),
-      childId: parseInt(selectedChild),
-      text: documentation,
-      timestamp: new Date().toISOString(),
-      employeeId: currentUser.id
-    };
+    try {
+      const { updatedScheduleData, updatedShift } = addDocumentationToShift({
+        selectedChild,
+        documentation,
+        currentUser,
+        currentShift,
+        scheduleData,
+        selectedWeek,
+        modalData
+      });
 
-    setScheduleData(prev => {
-      const newData = { ...prev };
-      const weekKey = selectedWeek;
-      const day = modalData.day;
-      const time = modalData.time;
+      setScheduleData(updatedScheduleData);
+      setCurrentShift(updatedShift);
+      setShowDocumentations(true);
+      setDocumentationSaved(true);
+      setSelectedChild('');
+      setDocumentation('');
 
-      if (!newData[weekKey]) newData[weekKey] = {};
-      if (!newData[weekKey][day]) newData[weekKey][day] = {};
-      if (!newData[weekKey][day][time]) newData[weekKey][day][time] = [];
-
-      const shiftIndex = newData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
-
-      if (shiftIndex >= 0) {
-        const updatedShift = {
-          ...newData[weekKey][day][time][shiftIndex],
-          documentations: [
-            ...(newData[weekKey][day][time][shiftIndex].documentations || []),
-            newDoc
-          ]
-        };
-        newData[weekKey][day][time][shiftIndex] = updatedShift;
-        setCurrentShift(updatedShift);
-      }
-
-      return newData;
-    });
-
-    // Zeige die Dokumentationen an
-    setShowDocumentations(true);
-    setDocumentationSaved(true);
-    setSelectedChild('');
-    setDocumentation('');
-
-    setTimeout(() => {
-      setDocumentationSaved(false);
-    }, 2000);
+      setTimeout(() => {
+        setDocumentationSaved(false);
+      }, 2000);
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   const handleEditDocumentation = (docId) => {
@@ -996,79 +687,53 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   const handleUpdateDocumentation = () => {
     if (!editingDocText.trim() || !selectedChild) return;
 
-    setScheduleData(prev => {
-      const newData = { ...prev };
-      const weekKey = selectedWeek;
-      const day = modalData.day;
-      const time = modalData.time;
-      
-      const shiftIndex = newData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
-      
-      if (shiftIndex >= 0) {
-        const updatedDocs = currentShift.documentations.map(doc => 
-          doc.id === editingDocId
-            ? { 
-                ...doc, 
-                text: editingDocText, 
-                childId: parseInt(selectedChild),
-                lastModified: new Date().toISOString()
-              }
-            : doc
-        );
-        
-        const updatedShift = {
-          ...currentShift,
-          documentations: updatedDocs
-        };
-        
-        setCurrentShift(updatedShift);
-        newData[weekKey][day][time][shiftIndex] = updatedShift;
-      }
-      
-      return newData;
-    });
+    try {
+      const { updatedScheduleData, updatedShift } = updateDocumentationInShift({
+        editingDocId,
+        editingDocText,
+        selectedChild,
+        currentShift,
+        scheduleData,
+        selectedWeek,
+        modalData
+      });
 
-    setDocumentationSaved(true);
-    setEditingDocId(null);
-    setEditingDocText('');
-    setSelectedChild('');
-    
-    setTimeout(() => {
-      setDocumentationSaved(false);
-    }, 2000);
+      setScheduleData(updatedScheduleData);
+      setCurrentShift(updatedShift);
+      setDocumentationSaved(true);
+      setEditingDocId(null);
+      setEditingDocText('');
+      setSelectedChild('');
+      
+      setTimeout(() => {
+        setDocumentationSaved(false);
+      }, 2000);
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   const handleDeleteDocumentation = (docId) => {
     if (window.confirm('Möchten Sie diese Dokumentation wirklich löschen?')) {
-      // Zuerst den currentShift aktualisieren
-      const updatedDocs = currentShift.documentations.filter(doc => doc.id !== docId);
-      const updatedShift = {
-        ...currentShift,
-        documentations: updatedDocs
-      };
-      setCurrentShift(updatedShift);
+      try {
+        const { updatedScheduleData, updatedShift } = deleteDocumentationFromShift({
+          docId,
+          currentShift,
+          scheduleData,
+          selectedWeek,
+          modalData
+        });
 
-      // Dann scheduleData aktualisieren
-      setScheduleData(prev => {
-        const newData = { ...prev };
-        const weekKey = selectedWeek;
-        const day = modalData.day;
-        const time = modalData.time;
+        setScheduleData(updatedScheduleData);
+        setCurrentShift(updatedShift);
+        setDocumentationSaved(true);
         
-        const shiftIndex = newData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
-        
-        if (shiftIndex >= 0) {
-          newData[weekKey][day][time][shiftIndex] = updatedShift;
-        }
-        
-        return newData;
-      });
-
-      // Erfolgsmeldung anzeigen
-      setDocumentationSaved(true);
-      setTimeout(() => {
-        setDocumentationSaved(false);
-      }, 2000);
+        setTimeout(() => {
+          setDocumentationSaved(false);
+        }, 2000);
+      } catch (error) {
+        alert(error.message);
+      }
     }
   };
 

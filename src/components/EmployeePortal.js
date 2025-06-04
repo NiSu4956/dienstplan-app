@@ -1,49 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Modal from './common/Modal';
 import RequestForm from './requests/RequestForm';
 import { formatDate } from '../utils/dateUtils';
+import { REQUEST_TYPES, REQUEST_STATUS_TEXT, REQUEST_STATUS_CLASS } from '../constants';
 
 function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, shiftTypes }) {
   const [showModal, setShowModal] = useState(false);
-  const [formType, setFormType] = useState('vacation');
+  const [formType, setFormType] = useState(REQUEST_TYPES.VACATION);
 
-  const userRequests = requests.filter(req => req.employeeName === currentUser.name);
-  const pendingRequests = userRequests.filter(req => req.status === 'pending');
-  const processedRequests = userRequests.filter(req => req.status !== 'pending');
+  // Memoize filtered requests
+  const { pendingRequests, processedRequests } = useMemo(() => {
+    const userRequests = requests.filter(req => req.employeeName === currentUser.name);
+    return {
+      pendingRequests: userRequests.filter(req => req.status === 'pending'),
+      processedRequests: userRequests.filter(req => req.status !== 'pending')
+    };
+  }, [requests, currentUser.name]);
 
   const handleSubmitRequest = (formData) => {
     onSubmitRequest({
       ...formData,
       submittedAt: new Date().toISOString()
     });
-    
     setShowModal(false);
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'Ausstehend';
-      case 'approved':
-        return 'Genehmigt';
-      case 'rejected':
-        return 'Abgelehnt';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'status-pending';
-      case 'approved':
-        return 'status-approved';
-      case 'rejected':
-        return 'status-rejected';
-      default:
-        return '';
-    }
   };
 
   return (
@@ -54,7 +33,7 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
           <button 
             className="button" 
             onClick={() => {
-              setFormType('vacation');
+              setFormType(REQUEST_TYPES.VACATION);
               setShowModal(true);
             }}
           >
@@ -63,7 +42,7 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
           <button 
             className="button" 
             onClick={() => {
-              setFormType('sick');
+              setFormType(REQUEST_TYPES.SICK);
               setShowModal(true);
             }}
           >
@@ -75,7 +54,7 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
       <div className="requests-section">
         <h3>Meine Anträge</h3>
         
-        {userRequests.length === 0 ? (
+        {pendingRequests.length === 0 && processedRequests.length === 0 ? (
           <div className="empty-state">
             Keine Anträge vorhanden
           </div>
@@ -88,10 +67,10 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
                   <div key={request.id} className="request-card">
                     <div className="request-header">
                       <span className={`request-type ${request.type}`}>
-                        {request.type === 'vacation' ? 'Urlaub' : 'Krankmeldung'}
+                        {request.type === REQUEST_TYPES.VACATION ? 'Urlaub' : 'Krankmeldung'}
                       </span>
-                      <span className={`request-status ${getStatusClass(request.status)}`}>
-                        {getStatusText(request.status)}
+                      <span className={`request-status ${REQUEST_STATUS_CLASS[request.status]}`}>
+                        {REQUEST_STATUS_TEXT[request.status]}
                       </span>
                     </div>
                     <div className="request-dates">
@@ -117,10 +96,10 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
                   <div key={request.id} className="request-card">
                     <div className="request-header">
                       <span className={`request-type ${request.type}`}>
-                        {request.type === 'vacation' ? 'Urlaub' : 'Krankmeldung'}
+                        {request.type === REQUEST_TYPES.VACATION ? 'Urlaub' : 'Krankmeldung'}
                       </span>
-                      <span className={`request-status ${getStatusClass(request.status)}`}>
-                        {getStatusText(request.status)}
+                      <span className={`request-status ${REQUEST_STATUS_CLASS[request.status]}`}>
+                        {REQUEST_STATUS_TEXT[request.status]}
                       </span>
                     </div>
                     <div className="request-dates">
@@ -150,7 +129,7 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={formType === 'vacation' ? 'Urlaub beantragen' : 'Krankmeldung einreichen'}
+        title={formType === REQUEST_TYPES.VACATION ? 'Urlaub beantragen' : 'Krankmeldung einreichen'}
       >
         <RequestForm
           type={formType}
