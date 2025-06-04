@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './common/Modal';
 import RequestForm from './requests/RequestForm';
+import { formatDate } from '../utils/dateUtils';
 
 function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, shiftTypes }) {
   const [showModal, setShowModal] = useState(false);
@@ -17,15 +18,6 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
     });
     
     setShowModal(false);
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
   };
 
   const getStatusText = (status) => {

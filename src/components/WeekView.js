@@ -9,8 +9,10 @@ import {
   checkDuplicateShifts,
   getDateFromWeek,
   getCurrentWeek,
-  isCurrentDay
+  isCurrentDay,
+  parseDate
 } from '../utils/shiftUtils';
+import { formatDate, DATE_FORMATS } from '../utils/dateUtils';
 
 // Memoized Shift Card Component
 const ShiftCard = memo(({ 
@@ -386,13 +388,6 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   const [editingDocId, setEditingDocId] = useState(null);
   const [editingDocText, setEditingDocText] = useState('');
 
-  // Initialisiere scheduleData aus localStorage
-  useEffect(() => {
-    // Leere das localStorage für einen sauberen Start
-    localStorage.removeItem('scheduleData');
-    setScheduleData({});
-  }, []); // Nur beim ersten Laden ausführen
-
   // Speichere scheduleData in localStorage bei Änderungen
   useEffect(() => {
     if (scheduleData && Object.keys(scheduleData).length > 0) {
@@ -606,11 +601,11 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   }, [selectedWeek, selectedDay, days]);
 
   // Hilfsfunktion zum Formatieren des Datums
-  const formatDate = (weekString, day) => {
+  const formatWeekDayDate = (weekString, day) => {
     const dateString = getDateFromWeek(weekString, days.indexOf(day));
-    // Extrahiere Tag, Monat und Jahr aus dem String (Format: DD.MM.YYYY)
     const [day_str, month_str, year_str] = dateString.split('.');
-    return `${day}, ${day_str.padStart(2, '0')}.${month_str.padStart(2, '0')}.${year_str}`;
+    const parsedDate = new Date(year_str, parseInt(month_str) - 1, parseInt(day_str));
+    return formatDate(parsedDate, DATE_FORMATS.WEEKDAY_DATE);
   };
 
   // Hilfsfunktion zum Ermitteln der Start- und Endzeit
@@ -717,7 +712,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         notes,
         type: customColor,
         name: mainEmployee ? mainEmployee.name : customTitle,
-        documentations: existingDocumentations // Behalte die existierenden Dokumentationen
+        documentations: existingDocumentations
       };
     } else {
       const employee = employees.find(e => e.id === parseInt(employeeId));
@@ -735,7 +730,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         type: shiftType.color,
         notes,
         isCustom: false,
-        documentations: existingDocumentations // Behalte die existierenden Dokumentationen
+        documentations: existingDocumentations
       };
     }
     
@@ -932,89 +927,53 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     doc.save(`Dienstplan_${selectedWeek.replace(/\s/g, '_')}.pdf`);
   };
 
-  const handleSaveDocumentation = async () => {
+  const handleSaveDocumentation = () => {
     if (!selectedChild || !documentation.trim()) return;
 
     const newDoc = {
-      id: Date.now(),
+      id: Date.now().toString(),
       childId: parseInt(selectedChild),
       text: documentation,
       timestamp: new Date().toISOString(),
       employeeId: currentUser.id
     };
 
-    try {
-      // Erstelle eine aktualisierte Version der aktuellen Schicht
-      const updatedShift = {
-        ...currentShift,
-        documentations: [...(currentShift.documentations || []), newDoc]
-      };
+    setScheduleData(prev => {
+      const newData = { ...prev };
+      const weekKey = selectedWeek;
+      const day = modalData.day;
+      const time = modalData.time;
 
-      console.log('Saving documentation - Updated shift:', updatedShift);
+      if (!newData[weekKey]) newData[weekKey] = {};
+      if (!newData[weekKey][day]) newData[weekKey][day] = {};
+      if (!newData[weekKey][day][time]) newData[weekKey][day][time] = [];
 
-      // Aktualisiere den scheduleData State
-      setScheduleData(prev => {
-        const updatedData = { ...prev };
-        const weekKey = selectedWeek;
-        const day = modalData.day;
-        const time = modalData.time;
+      const shiftIndex = newData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
 
-        console.log('Saving to scheduleData at:', {
-          weekKey,
-          day,
-          time,
-          shiftId: currentShift.id
-        });
+      if (shiftIndex >= 0) {
+        const updatedShift = {
+          ...newData[weekKey][day][time][shiftIndex],
+          documentations: [
+            ...(newData[weekKey][day][time][shiftIndex].documentations || []),
+            newDoc
+          ]
+        };
+        newData[weekKey][day][time][shiftIndex] = updatedShift;
+        setCurrentShift(updatedShift);
+      }
 
-        if (!updatedData[weekKey]) updatedData[weekKey] = {};
-        if (!updatedData[weekKey][day]) updatedData[weekKey][day] = {};
-        if (!updatedData[weekKey][day][time]) updatedData[weekKey][day][time] = [];
+      return newData;
+    });
 
-        const shiftIndex = updatedData[weekKey][day][time].findIndex(s => s.id === currentShift.id);
+    // Zeige die Dokumentationen an
+    setShowDocumentations(true);
+    setDocumentationSaved(true);
+    setSelectedChild('');
+    setDocumentation('');
 
-        if (shiftIndex >= 0) {
-          updatedData[weekKey][day][time][shiftIndex] = updatedShift;
-          console.log('Updated scheduleData:', updatedData[weekKey][day][time][shiftIndex]);
-        } else {
-          console.warn('Shift not found at expected position, searching in all time slots');
-          
-          // Suche in allen Zeitslots des Tages
-          let shiftFound = false;
-          Object.keys(updatedData[weekKey][day]).forEach(timeSlot => {
-            const idx = updatedData[weekKey][day][timeSlot].findIndex(s => s.id === currentShift.id);
-            if (idx >= 0) {
-              updatedData[weekKey][day][timeSlot][idx] = updatedShift;
-              shiftFound = true;
-              console.log('Found and updated shift in time slot:', timeSlot);
-            }
-          });
-          
-          if (!shiftFound) {
-            console.warn('Shift not found in any time slot, adding to current time slot');
-            updatedData[weekKey][day][time].push(updatedShift);
-          }
-        }
-
-        return updatedData;
-      });
-
-      // Aktualisiere den currentShift State
-      setCurrentShift(updatedShift);
-      
-      // Zeige die Dokumentationen an
-      setShowDocumentations(true);
-      setDocumentationSaved(true);
-      setSelectedChild('');
-      setDocumentation('');
-
-      setTimeout(() => {
-        setDocumentationSaved(false);
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error saving documentation:', error);
-      alert('Beim Speichern der Dokumentation ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
-    }
+    setTimeout(() => {
+      setDocumentationSaved(false);
+    }, 2000);
   };
 
   const handleEditDocumentation = (docId) => {
@@ -1040,7 +999,12 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       if (shiftIndex >= 0) {
         const updatedDocs = currentShift.documentations.map(doc => 
           doc.id === editingDocId
-            ? { ...doc, text: editingDocText, childId: parseInt(selectedChild) }
+            ? { 
+                ...doc, 
+                text: editingDocText, 
+                childId: parseInt(selectedChild),
+                lastModified: new Date().toISOString()
+              }
             : doc
         );
         
@@ -1305,7 +1269,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
           <div className="modal-content">
             <div className="shift-details">
               <p><strong>Schichttyp:</strong> {currentShift?.isCustom ? currentShift.customTitle : shiftTypes.find(t => t.id === currentShift?.shiftTypeId)?.name}</p>
-              <p><strong>Datum:</strong> {formatDate(selectedWeek, modalData.day)}</p>
+              <p><strong>Datum:</strong> {formatWeekDayDate(selectedWeek, modalData.day)}</p>
               <p><strong>Uhrzeit:</strong> {getShiftTimes(currentShift, modalData.time)}</p>
               {currentShift?.tasks?.length > 0 && (
                 <p><strong>Aufgaben:</strong> {currentShift.tasks.join(', ')}</p>

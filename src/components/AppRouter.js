@@ -337,6 +337,7 @@ function AppRouter() {
                   requests={requests}
                   onApproveRequest={handleApproveRequest}
                   onRejectRequest={handleRejectRequest}
+                  scheduleData={scheduleData}
                   children={children}
                   setChildren={setChildren}
                 />

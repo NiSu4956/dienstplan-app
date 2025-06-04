@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import EmployeeView from './EmployeeView';
 import ShiftManagement from './shifts/ShiftManagement';
-import ChildManagement from './children/ChildManagement';
+import ChildrenManagement from './admin/ChildrenManagement';
 import NotificationView from './admin/NotificationView';
 
 function AdminArea({ 
@@ -77,7 +77,9 @@ function AdminArea({
           />
         )}
         {activeTab === 'children' && (
-          <ChildManagement 
+          <ChildrenManagement 
+            scheduleData={scheduleData}
+            employees={employees}
             children={children}
             setChildren={setChildren}
           />

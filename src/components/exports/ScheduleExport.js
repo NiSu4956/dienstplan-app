@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { formatDate } from '../../utils/dateUtils';
 
 export const exportToCsv = (scheduleData, selectedWeek, days, timeSlots) => {
   let csvContent = "Zeit;";
@@ -106,7 +107,7 @@ export const exportToPdf = (scheduleData, selectedWeek, days, timeSlots) => {
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    const today = new Date().toLocaleDateString('de-DE');
+    const today = formatDate(new Date());
     doc.setFontSize(8);
     doc.text(`Erstellt am: ${today} | Seite ${i} von ${pageCount}`, 14, doc.internal.pageSize.height - 10);
   }

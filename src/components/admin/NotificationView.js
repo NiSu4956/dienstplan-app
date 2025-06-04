@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Modal from '../common/Modal';
 import { validateRequest } from '../../utils/requestHandler';
+import { formatDate } from '../../utils/dateUtils';
 
 const REQUEST_TYPES = {
   VACATION: 'vacation',
@@ -58,15 +59,6 @@ function NotificationView({ requests, onApproveRequest, onRejectRequest, schedul
     setAdminComment('');
     setValidationError('');
     setShowModal(true);
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
   };
 
   const renderRequestDetails = (request) => (
