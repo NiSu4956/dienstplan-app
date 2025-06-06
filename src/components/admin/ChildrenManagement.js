@@ -157,32 +157,32 @@ function ChildrenManagement({ scheduleData, employees, children, setChildren }) 
               )}
             </div>
                 <div className="list-item-actions">
-              <button
-                className="button"
-                onClick={() => handleOpenDocumentation(child)}
-              >
+                  <button
+                    className="button primary"
+                    onClick={() => handleOpenDocumentation(child)}
+                  >
                     Dokumentationen
-              </button>
-              <button
+                  </button>
+                  <button
                     className="button secondary"
                     onClick={() => {
                       setCurrentChild(child);
                       setModalOpen(true);
                     }}
-              >
-                Bearbeiten
-              </button>
-              <button
+                  >
+                    Bearbeiten
+                  </button>
+                  <button
                     className="button delete"
                     onClick={() => {
                       if (window.confirm('Möchten Sie dieses Kind wirklich löschen?')) {
                         setChildren(prev => prev.filter(c => c.id !== child.id));
                       }
                     }}
-              >
-                Löschen
-              </button>
-            </div>
+                  >
+                    Löschen
+                  </button>
+                </div>
           </div>
         ))}
         {filteredChildren.length === 0 && (

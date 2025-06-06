@@ -1,0 +1,71 @@
+.working-hours-overview {
+  padding: 20px;
+}
+
+.filter-section {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-section .form-select {
+  min-width: 120px;
+}
+
+.summary-section {
+  background-color: #f3f4f6;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.summary-section h3 {
+  margin: 0;
+  color: #374151;
+  font-size: 1.2rem;
+}
+
+.total-hours {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #4f46e5;
+  margin: 10px 0 0 0;
+}
+
+.shifts-section {
+  margin-top: 20px;
+}
+
+.shifts-section h4 {
+  margin-bottom: 15px;
+  color: #374151;
+}
+
+.shifts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shifts-table th,
+.shifts-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shifts-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.shifts-table tr:hover {
+  background-color: #f9fafb;
+}
+
+.text-center {
+  text-align: center;
+  color: #6b7280;
+  padding: 20px;
+} 

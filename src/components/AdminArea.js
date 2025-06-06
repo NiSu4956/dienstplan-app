@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import EmployeeView from './EmployeeView';
+import EmployeeView from './admin/EmployeeView';
 import ShiftManagement from './shifts/ShiftManagement';
 import ChildrenManagement from './admin/ChildrenManagement';
 import NotificationView from './admin/NotificationView';
@@ -33,51 +33,50 @@ function AdminArea({
       </div>
 
       <div className="admin-tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'employees' ? 'active' : ''}`}
           onClick={() => setActiveTab('employees')}
         >
           Personal
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'shifts' ? 'active' : ''}`}
           onClick={() => setActiveTab('shifts')}
         >
           Schichttypen
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'children' ? 'active' : ''}`}
           onClick={() => setActiveTab('children')}
         >
           Kinder
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
           onClick={() => setActiveTab('notifications')}
         >
-          Benachrichtigungen
-          {pendingRequests.length > 0 && (
-            <span className="notification-badge">{pendingRequests.length}</span>
-          )}
+          Benachrichtigungen {pendingRequests.length > 0 && `(${pendingRequests.length})`}
         </button>
       </div>
 
       <div className="admin-content">
         {activeTab === 'employees' && (
           <EmployeeView 
-            employees={employees}
+            employees={employees} 
             setEmployees={setEmployees}
+            scheduleData={scheduleData}
+            shiftTypes={shiftTypes}
           />
         )}
         {activeTab === 'shifts' && (
           <ShiftManagement 
-            shiftTypes={shiftTypes}
+            shiftTypes={shiftTypes} 
             setShiftTypes={setShiftTypes}
             employees={employees}
           />
         )}
         {activeTab === 'children' && (
-          <ChildrenManagement 
+          <ChildrenManagement
             scheduleData={scheduleData}
             employees={employees}
             children={children}
@@ -85,7 +84,7 @@ function AdminArea({
           />
         )}
         {activeTab === 'notifications' && (
-          <NotificationView 
+          <NotificationView
             requests={requests}
             onApproveRequest={onApproveRequest}
             onRejectRequest={onRejectRequest}
