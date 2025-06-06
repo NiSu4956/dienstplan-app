@@ -17,7 +17,10 @@ import { exportScheduleAsPDF } from '../utils/pdfExport';
 import { 
   handleShiftSave as handleShiftSaveUtil,
   updateScheduleWithNewShift,
-  deleteShiftFromSchedule
+  deleteShiftFromSchedule,
+  validateShiftAssignment,
+  getEmployeeById,
+  formatTimeSlot
 } from '../utils/shiftManagement';
 import {
   addDocumentationToShift,

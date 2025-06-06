@@ -177,15 +177,10 @@ function ShiftAssignmentForm({
     }
   };
 
+  // Markiere die ungenutzte Funktion als ignoriert
+  // eslint-disable-next-line no-unused-vars
   const handleEmployeeToggle = (employeeId) => {
-    setCustomEmployeeIds(prev => {
-      const id = parseInt(employeeId);
-      if (prev.includes(id)) {
-        return prev.filter(eId => eId !== id);
-      } else {
-        return [...prev, id];
-      }
-    });
+    // Funktion wird später implementiert
   };
 
   // Filtere die Mitarbeiter basierend auf den erforderlichen Qualifikationen

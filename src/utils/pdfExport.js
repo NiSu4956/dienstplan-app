@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatDate } from './dateUtils';
 import { PDF_STYLES } from '../constants';
 
 const getShiftColor = (text) => {

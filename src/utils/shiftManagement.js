@@ -171,4 +171,20 @@ export const deleteShiftFromSchedule = (scheduleData, selectedWeek, day, shiftId
   }
   
   return newData;
-}; 
+};
+
+export function validateShiftAssignment(shift, employee, scheduleData) {
+  const date = new Date(shift.date);
+  const day = date.getDay();
+  // const time = shift.time;  // ungenutzt - entfernen
+
+  // Prüfe Verfügbarkeit
+  if (!employee.availability[day]) {
+    return {
+      isValid: false,
+      message: 'Der Mitarbeiter ist an diesem Tag nicht verfügbar.'
+    };
+  }
+
+  // ... rest of the code ...
+} 

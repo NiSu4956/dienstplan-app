@@ -7,6 +7,9 @@ import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import { validateRequest } from '../utils/requestHandler';
 import { STORAGE_KEYS, ROLES, REQUEST_TYPES, DEFAULT_TIME_SLOT, DAYS_OF_WEEK } from '../constants';
+import Navigation from './Navigation';
+import Dashboard from './Dashboard';
+import Settings from './settings/Settings';
 
 // Memoized initial data
 const INITIAL_SCHEDULE_DATA = {};
@@ -49,7 +52,7 @@ const INITIAL_SHIFT_TYPES = [
 ];
 
 // Memoized Navigation component
-const Navigation = memo(({ currentUser, onLogout }) => {
+const NavigationComponent = memo(({ currentUser, onLogout }) => {
   const location = useLocation();
   
   return (
@@ -299,7 +302,7 @@ function AppRouter() {
   return (
     <Router>
       <div className="app-container">
-        <Navigation currentUser={currentUser} onLogout={handleLogout} />
+        <NavigationComponent currentUser={currentUser} onLogout={handleLogout} />
         
         <main className="main-content">
           <Routes>
@@ -339,6 +342,29 @@ function AppRouter() {
                 />
               </ProtectedRoute>
             } />
+            
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard 
+                    scheduleData={scheduleData}
+                    employees={employees}
+                    requests={requests}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
