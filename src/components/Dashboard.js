@@ -8,6 +8,9 @@ function Dashboard({ scheduleData, employees, requests, currentUser }) {
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
+    // Filtern der Mitarbeiter (ohne Admin)
+    const activeEmployees = employees.filter(emp => emp.role !== 'admin');
+    
     // Krankenquote berechnen
     const sickLeaveRequests = requests.filter(req => 
       req.type === REQUEST_TYPES.SICK && 
@@ -15,7 +18,7 @@ function Dashboard({ scheduleData, employees, requests, currentUser }) {
       new Date(req.startDate).getMonth() === currentMonth
     );
     
-    const totalEmployees = employees.length;
+    const totalEmployees = activeEmployees.length;
     const sickLeaveRate = (sickLeaveRequests.length / totalEmployees) * 100;
 
     // Urlaubsübersicht
@@ -110,16 +113,16 @@ function Dashboard({ scheduleData, employees, requests, currentUser }) {
             <thead>
               <tr>
                 <th>Mitarbeiter</th>
-                {Array.from(new Set(employees.flatMap(emp => emp.qualifications))).map(qual => (
+                {Array.from(new Set(employees.filter(emp => emp.role !== 'admin').flatMap(emp => emp.qualifications))).map(qual => (
                   <th key={qual}>{qual}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {employees.map(employee => (
+              {employees.filter(emp => emp.role !== 'admin').map(employee => (
                 <tr key={employee.id}>
                   <td>{employee.name}</td>
-                  {Array.from(new Set(employees.flatMap(emp => emp.qualifications))).map(qual => (
+                  {Array.from(new Set(employees.filter(emp => emp.role !== 'admin').flatMap(emp => emp.qualifications))).map(qual => (
                     <td key={qual} className="matrix-cell">
                       {employee.qualifications.includes(qual) ? '✓' : '-'}
                     </td>

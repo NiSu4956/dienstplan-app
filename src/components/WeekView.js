@@ -755,10 +755,12 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
               onChange={(e) => setSelectedEmployee(e.target.value)}
             >
               <option value="">Alle Mitarbeiter</option>
-              {employees.map(employee => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name}
-                </option>
+              {employees
+                .filter(employee => employee.role !== 'admin')
+                .map(employee => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </option>
               ))}
             </select>
             <select

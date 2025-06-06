@@ -7,95 +7,64 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [monthlyHours, setMonthlyHours] = useState(0);
   const [detailedShifts, setDetailedShifts] = useState([]);
+  const [weeklyHours, setWeeklyHours] = useState([]);
+  const [showWeeklyOverview, setShowWeeklyOverview] = useState(false);
+  const [showDetailedList, setShowDetailedList] = useState(false);
 
   useEffect(() => {
     calculateMonthlyHours();
   }, [selectedMonth, selectedYear, employee, scheduleData]);
 
   const calculateMonthlyHours = () => {
-    console.log('Berechne Stunden für:', {
-      employee,
-      month: selectedMonth,
-      year: selectedYear,
-      scheduleData
-    });
-
     let totalMinutes = 0;
     const shiftsArray = [];
+    const weeklyHoursArray = [];
+    let currentWeekHours = 0;
+    let currentWeekNumber = -1;
 
-    // Gehe durch alle Wochen im scheduleData
+    // Bestimme die Soll-Wochenarbeitsstunden
+    const targetWeeklyHours = employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0);
+
+    // Berechne die Anzahl der Arbeitswochen im ausgewählten Monat
+    const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+    const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
+    const weeksInMonth = Math.ceil((lastDayOfMonth.getDate() - firstDayOfMonth.getDate() + 1) / 7);
+
     Object.entries(scheduleData).forEach(([week, weekData]) => {
-      console.log('Verarbeite Woche:', week);
+      // Extrahiere die Kalenderwoche aus dem String
+      const weekMatch = week.match(/KW (\d+)/);
+      const weekNumber = weekMatch ? parseInt(weekMatch[1]) : -1;
       
-      // Extrahiere Start- und Enddatum aus der Woche (z.B. "KW 22 (26.05 - 01.06.2025)")
-      const dateRangeMatch = week.match(/KW \d+ \((\d{2}\.\d{2})\s*-\s*(\d{2}\.\d{2})\.(\d{4})\)/);
-      if (!dateRangeMatch) {
-        console.log('Kein gültiges Datumsformat gefunden in:', week);
-        return;
+      if (weekNumber !== currentWeekNumber && currentWeekNumber !== -1) {
+        // Speichere die Stunden der vorherigen Woche
+        weeklyHoursArray.push({
+          weekNumber: currentWeekNumber,
+          hours: currentWeekHours,
+          overtime: calculateOvertime(currentWeekHours, targetWeeklyHours)
+        });
+        currentWeekHours = 0;
       }
+      currentWeekNumber = weekNumber;
 
-      const [_, startDateStr, endDateStr, yearStr] = dateRangeMatch;
-      const year = parseInt(yearStr);
-      
-      // Parse Startdatum
-      const [startDay, startMonth] = startDateStr.split('.').map(Number);
-      const weekStartDate = new Date(year, startMonth - 1, startDay);
-      
-      console.log('Woche beginnt am:', weekStartDate);
-      
-      // Gehe durch alle Tage
       Object.entries(weekData).forEach(([day, dayData]) => {
-        // Berechne das tatsächliche Datum für diesen Tag
         const dayIndex = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'].indexOf(day);
-        if (dayIndex === -1) {
-          console.log('Ungültiger Wochentag:', day);
-          return;
-        }
-        
+        if (dayIndex === -1) return;
+
+        const weekStartDate = parseWeekString(week);
+        if (!weekStartDate) return;
+
         const currentDate = new Date(weekStartDate);
         currentDate.setDate(weekStartDate.getDate() + dayIndex);
-        
-        console.log('Verarbeite Tag:', {
-          date: currentDate,
-          month: currentDate.getMonth(),
-          selectedMonth,
-          year: currentDate.getFullYear(),
-          selectedYear,
-          day,
-          dayData
-        });
 
-        // Prüfe, ob der Tag im ausgewählten Monat und Jahr liegt
-        if (currentDate.getMonth() !== selectedMonth || currentDate.getFullYear() !== selectedYear) {
-          console.log('Tag liegt nicht im ausgewählten Monat/Jahr');
-          return;
-        }
+        if (currentDate.getMonth() !== selectedMonth || currentDate.getFullYear() !== selectedYear) return;
 
-        // Gehe durch alle Zeitslots
         Object.entries(dayData).forEach(([timeSlot, shifts]) => {
-          console.log('Verarbeite Zeitslot:', timeSlot, 'mit Schichten:', shifts);
-          
-          // Finde Schichten des Mitarbeiters
           shifts.forEach(shift => {
-            console.log('Prüfe Schicht:', {
-              shift,
-              employeeId: employee.id,
-              isCustom: shift.isCustom,
-              customEmployeeIds: shift.customEmployeeIds,
-              employeeIdInShift: shift.employeeId
-            });
-
             if (isEmployeeShift(shift, employee.id)) {
               const shiftDuration = calculateShiftDuration(shift, shiftTypes);
-              console.log('Gefundene Schicht für Mitarbeiter:', {
-                duration: shiftDuration,
-                timeRange: getShiftTimeRange(shift, shiftTypes),
-                type: getShiftType(shift, shiftTypes)
-              });
-
               totalMinutes += shiftDuration;
+              currentWeekHours += shiftDuration / 60;
 
-              // Füge detaillierte Schichtinformation hinzu
               shiftsArray.push({
                 date: formatDate(currentDate),
                 timeSlot: getShiftTimeRange(shift, shiftTypes),
@@ -108,14 +77,42 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
       });
     });
 
-    console.log('Berechnungsergebnis:', {
-      totalMinutes,
-      hours: totalMinutes / 60,
-      shiftsFound: shiftsArray
-    });
+    // Füge die letzte Woche hinzu
+    if (currentWeekNumber !== -1) {
+      weeklyHoursArray.push({
+        weekNumber: currentWeekNumber,
+        hours: currentWeekHours,
+        overtime: calculateOvertime(currentWeekHours, targetWeeklyHours)
+      });
+    }
 
-    setMonthlyHours(totalMinutes / 60); // Konvertiere zu Stunden
-    setDetailedShifts(shiftsArray.sort((a, b) => new Date(a.date) - new Date(b.date)));
+    setMonthlyHours(totalMinutes / 60);
+
+    // Hilfsfunktion zum Parsen des deutschen Datums
+    const parseGermanDate = (dateStr) => {
+      const [day, month, year] = dateStr.split('.').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
+    // Sortiere absteigend nach korrektem Datum
+    setDetailedShifts(shiftsArray.sort((a, b) => {
+      const dateA = parseGermanDate(a.date);
+      const dateB = parseGermanDate(b.date);
+      return dateB - dateA;
+    }));
+    setWeeklyHours(weeklyHoursArray);
+  };
+
+  const calculateOvertime = (actualHours, targetHours) => {
+    return actualHours - targetHours;
+  };
+
+  const parseWeekString = (weekString) => {
+    const dateMatch = weekString.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (!dateMatch) return null;
+    
+    const [, day, month, year] = dateMatch;
+    return new Date(year, month - 1, day);
   };
 
   const isEmployeeShift = (shift, employeeId) => {
@@ -207,111 +204,67 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
   const years = [2024, 2025, 2026, 2027, 2028];
 
   const downloadAsPDF = () => {
-    try {
-      // Erstelle ein neues PDF-Dokument (A4)
-      const doc = new jsPDF();
-      
-      // Füge deutsche Schriftart hinzu für Umlaute
-      doc.setFont("helvetica");
-      
-      // Titel
-      doc.setFontSize(16);
-      doc.text(`Stundenübersicht - ${employee.name}`, 14, 20);
-      doc.setFontSize(12);
-      doc.text(`${months[selectedMonth]} ${selectedYear}`, 14, 30);
-      doc.text(`Gesamtstunden: ${monthlyHours.toFixed(2)}`, 14, 40);
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
 
-      // Tabellendaten vorbereiten
-      const tableData = detailedShifts.map(shift => [
-        shift.date,
-        shift.timeSlot,
-        shift.type,
-        (shift.duration / 60).toFixed(2)
-      ]);
+    // Titel
+    doc.setFontSize(16);
+    doc.text(`Stundenübersicht - ${employee.name}`, margin, margin);
 
-      // Manuelle Tabellenerstellung
-      const startY = 50;
-      const cellPadding = 5;
-      const columnWidths = [40, 40, 60, 30];
-      const rowHeight = 10;
-      
-      // Header
-      doc.setFillColor(66, 139, 202);
-      doc.setTextColor(255);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      
-      let currentX = 14;
-      let currentY = startY;
-      
-      ['Datum', 'Uhrzeit', 'Schichttyp', 'Stunden'].forEach((header, index) => {
-        doc.rect(currentX, currentY, columnWidths[index], rowHeight, 'F');
-        doc.text(header, currentX + cellPadding, currentY + rowHeight - 2);
-        currentX += columnWidths[index];
-      });
-      
-      // Daten
-      doc.setTextColor(0);
-      doc.setFont("helvetica", "normal");
-      
-      tableData.forEach((row, rowIndex) => {
-        currentY = startY + (rowIndex + 1) * rowHeight;
-        currentX = 14;
-        
-        // Alternierende Zeilenfarben
-        if (rowIndex % 2 === 0) {
-          doc.setFillColor(245, 245, 245);
-          doc.rect(currentX, currentY, columnWidths.reduce((a, b) => a + b, 0), rowHeight, 'F');
-        }
-        
-        row.forEach((cell, cellIndex) => {
-          doc.rect(currentX, currentY, columnWidths[cellIndex], rowHeight);
-          doc.text(cell.toString(), currentX + cellPadding, currentY + rowHeight - 2);
-          currentX += columnWidths[cellIndex];
-        });
-      });
-      
-      // Gesamtstunden (Footer)
-      currentY += rowHeight;
-      doc.setFillColor(240, 240, 240);
-      doc.setFont("helvetica", "bold");
-      
-      const totalWidth = columnWidths.reduce((a, b) => a + b, 0);
-      doc.rect(14, currentY, totalWidth, rowHeight, 'F');
-      doc.text('Gesamtstunden', 14 + cellPadding, currentY + rowHeight - 2);
-      doc.text(monthlyHours.toFixed(2), 14 + totalWidth - 30, currentY + rowHeight - 2);
+    // Monat und Jahr
+    doc.setFontSize(12);
+    doc.text(`${months[selectedMonth]} ${selectedYear}`, margin, margin + 10);
 
-      // PDF speichern
-      doc.save(`Stundenübersicht_${employee.name}_${months[selectedMonth]}_${selectedYear}.pdf`);
-      
-      console.log('PDF erfolgreich erstellt');
-    } catch (error) {
-      console.error('Detaillierter Fehler beim PDF-Export:', {
-        error: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-      alert(`Beim Erstellen des PDFs ist ein Fehler aufgetreten: ${error.message}`);
-    }
+    // Gesamtstunden
+    doc.setFontSize(12);
+    const targetHours = employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0);
+    const totalOvertime = calculateOvertime(monthlyHours, targetHours * (weeklyHours.length));
+    doc.text(`Gesamtstunden: ${monthlyHours.toFixed(2)} Stunden`, margin, margin + 20);
+    doc.text(`Sollstunden: ${(targetHours * weeklyHours.length).toFixed(2)} Stunden`, margin, margin + 30);
+    doc.text(`Überstunden: ${totalOvertime.toFixed(2)} Stunden`, margin, margin + 40);
+
+    // Wöchentliche Übersicht
+    doc.setFontSize(12);
+    doc.text("Wöchentliche Übersicht:", margin, margin + 60);
+    
+    let yPos = margin + 70;
+    weeklyHours.forEach((week, index) => {
+      const text = `KW ${week.weekNumber}: ${week.hours.toFixed(2)} Stunden (${week.overtime > 0 ? '+' : ''}${week.overtime.toFixed(2)} Stunden)`;
+      doc.text(text, margin, yPos);
+      yPos += 10;
+    });
+
+    // Detaillierte Auflistung
+    yPos += 10;
+    doc.text("Detaillierte Auflistung:", margin, yPos);
+    yPos += 10;
+
+    detailedShifts.forEach(shift => {
+      if (yPos > doc.internal.pageSize.height - margin) {
+        doc.addPage();
+        yPos = margin;
+      }
+      const text = `${shift.date}: ${shift.timeSlot} - ${shift.type} (${(shift.duration / 60).toFixed(2)} Stunden)`;
+      doc.text(text, margin, yPos);
+      yPos += 10;
+    });
+
+    doc.save(`Stundenübersicht_${employee.name}_${months[selectedMonth]}_${selectedYear}.pdf`);
   };
 
   const downloadAsCSV = () => {
-    // CSV Header
-    let csvContent = "Datum;Uhrzeit;Schichttyp;Stunden\n";
-
-    // CSV Daten
+    let csvContent = "Datum;Zeitraum;Schichttyp;Stunden\n";
+    
     detailedShifts.forEach(shift => {
       csvContent += `${shift.date};${shift.timeSlot};${shift.type};${(shift.duration / 60).toFixed(2)}\n`;
     });
 
-    // Gesamtstunden
-    csvContent += `\nGesamtstunden;${monthlyHours.toFixed(2)}`;
-
-    // Download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Stundenübersicht_${employee.name}_${months[selectedMonth]}_${selectedYear}.csv`;
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Stundenübersicht_${employee.name}_${months[selectedMonth]}_${selectedYear}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -350,39 +303,119 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
         </div>
 
         <div className="summary-section">
-          <h3>Gesamtstunden im {months[selectedMonth]} {selectedYear}</h3>
-          <p className="total-hours">{monthlyHours.toFixed(2)} Stunden</p>
+          <h3>Übersicht {months[selectedMonth]} {selectedYear}</h3>
+          <div className="hours-summary">
+            <div className="hours-item">
+              <span className="hours-label">Ist-Stunden {months[selectedMonth]}:</span>
+              <span className="hours-value">{monthlyHours.toFixed(2)} Stunden</span>
+            </div>
+            <div className="hours-item">
+              <span className="hours-label">Sollstunden {months[selectedMonth]}:</span>
+              <span className="hours-value">
+                {(((employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0)) / 5) * getWorkingDaysInMonth(selectedYear, selectedMonth)).toFixed(2)} Stunden
+              </span>
+            </div>
+            <div className="hours-item">
+              <span className="hours-label">Überstunden:</span>
+              <span className={`hours-value ${calculateOvertime(monthlyHours, ((employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0)) / 5) * getWorkingDaysInMonth(selectedYear, selectedMonth)) > 0 ? 'overtime-positive' : 'overtime-negative'}`}>
+                {calculateOvertime(monthlyHours, ((employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0)) / 5) * getWorkingDaysInMonth(selectedYear, selectedMonth)).toFixed(2)} Stunden
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="shifts-section">
-          <h4>Detaillierte Übersicht</h4>
-          <table className="shifts-table">
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th>Uhrzeit</th>
-                <th>Schichttyp</th>
-                <th>Stunden</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detailedShifts.map((shift, index) => (
-                <tr key={index}>
-                  <td>{shift.date}</td>
-                  <td>{shift.timeSlot}</td>
-                  <td>{shift.type}</td>
-                  <td>{(shift.duration / 60).toFixed(2)}</td>
-                </tr>
-              ))}
-              {detailedShifts.length === 0 && (
-                <tr>
-                  <td colSpan="4" className="text-center">
-                    Keine Schichten in diesem Monat
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="collapsible-sections">
+          <div className="section weekly-overview">
+            <button 
+              className={`section-toggle ${showWeeklyOverview ? 'open' : ''}`}
+              onClick={() => setShowWeeklyOverview(!showWeeklyOverview)}
+            >
+              <h4>Wöchentliche Übersicht</h4>
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 16 16" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  d="M4 6L8 10L12 6" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            {showWeeklyOverview && (
+              <div className="section-content">
+                <div className="weekly-hours-list">
+                  {weeklyHours.map((week, index) => (
+                    <div key={index} className="weekly-hours-item">
+                      <span className="week-number">KW {week.weekNumber}</span>
+                      <div className="week-hours-details">
+                        <div className="hours-column">
+                          <div className="hours-row">
+                            <span className="hours-label">Ist:</span>
+                            <span className="hours-value">{week.hours.toFixed(2)} h</span>
+                          </div>
+                          <div className="hours-row">
+                            <span className="hours-label">Soll:</span>
+                            <span className="hours-value">{(employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0)).toFixed(2)} h</span>
+                          </div>
+                        </div>
+                        <div className="overtime-column">
+                          <span className={`week-overtime ${week.overtime > 0 ? 'overtime-positive' : 'overtime-negative'}`}>
+                            {week.overtime > 0 ? '+' : ''}{week.overtime.toFixed(2)} h
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="section detailed-shifts">
+            <button 
+              className={`section-toggle ${showDetailedList ? 'open' : ''}`}
+              onClick={() => setShowDetailedList(!showDetailedList)}
+            >
+              <h4>Detaillierte Auflistung</h4>
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 16 16" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  d="M4 6L8 10L12 6" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            {showDetailedList && (
+              <div className="section-content">
+                <div className="shifts-list">
+                  {detailedShifts.map((shift, index) => (
+                    <div key={index} className="shift-item">
+                      <div className="shift-date">{shift.date}</div>
+                      <div className="shift-details">
+                        <span className="shift-time">{shift.timeSlot}</span>
+                        <span className="shift-type">{shift.type}</span>
+                        <span className="shift-duration">{(shift.duration / 60).toFixed(2)} Stunden</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <style jsx>{`
@@ -463,10 +496,99 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
           .text-center {
             text-align: center;
           }
+
+          .collapsible-sections {
+            margin-top: 20px;
+          }
+
+          .section {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+
+          .section-toggle {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .section-toggle:hover {
+            background-color: #f5f5f5;
+          }
+
+          .section-toggle h4 {
+            margin: 0;
+            font-size: 1.1em;
+            color: #333;
+          }
+
+          .section-toggle svg {
+            transition: transform 0.3s ease;
+            opacity: 0.6;
+          }
+
+          .section-toggle:hover svg {
+            opacity: 1;
+          }
+
+          .section-toggle.open svg {
+            transform: rotate(180deg);
+            opacity: 1;
+          }
+
+          .section-content {
+            border-top: 1px solid #eee;
+            padding: 15px;
+          }
+
+          .weekly-hours-list,
+          .shifts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .weekly-hours-item,
+          .shift-item {
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+          }
+
+          .weekly-hours-item:hover,
+          .shift-item:hover {
+            background-color: #f5f5f5;
+          }
         `}</style>
       </div>
     </Modal>
   );
+}
+
+// Hilfsfunktion zur Berechnung der Arbeitstage im Monat
+function getWorkingDaysInMonth(year, month) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  let workingDays = 0;
+
+  for (let day = firstDay; day <= lastDay; day.setDate(day.getDate() + 1)) {
+    // 0 = Sonntag, 6 = Samstag
+    if (day.getDay() !== 0 && day.getDay() !== 6) {
+      workingDays++;
+    }
+  }
+
+  return workingDays;
 }
 
 export default WorkingHoursOverview; 

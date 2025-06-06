@@ -12,6 +12,17 @@
   min-width: 120px;
 }
 
+.form-select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.export-buttons {
+  display: flex;
+  gap: 10px;
+}
+
 .summary-section {
   background-color: #f3f4f6;
   padding: 20px;
@@ -68,4 +79,151 @@
   text-align: center;
   color: #6b7280;
   padding: 20px;
+}
+
+.hours-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.hours-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.hours-label {
+  font-weight: 500;
+}
+
+.hours-value {
+  font-weight: 600;
+}
+
+.overtime-positive {
+  color: #22c55e;
+}
+
+.overtime-negative {
+  color: #ef4444;
+}
+
+.weekly-overview {
+  margin-bottom: 30px;
+}
+
+.weekly-hours-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.weekly-hours-item {
+  display: flex;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.week-number {
+  font-weight: 600;
+  min-width: 70px;
+  padding-top: 8px;
+}
+
+.week-hours-details {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hours-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hours-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.hours-label {
+  min-width: 45px;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.hours-value {
+  font-weight: 500;
+}
+
+.overtime-column {
+  display: flex;
+  align-items: center;
+  padding-top: 8px;
+}
+
+.week-overtime {
+  font-weight: 600;
+  font-size: 1.1em;
+}
+
+.overtime-positive {
+  color: #22c55e;
+}
+
+.overtime-negative {
+  color: #ef4444;
+}
+
+.detailed-shifts {
+  margin-top: 30px;
+}
+
+.shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.shift-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.shift-date {
+  font-weight: 500;
+  min-width: 100px;
+}
+
+.shift-details {
+  display: flex;
+  gap: 20px;
+}
+
+.shift-time {
+  min-width: 120px;
+}
+
+.shift-type {
+  min-width: 150px;
+}
+
+.shift-duration {
+  min-width: 100px;
+  text-align: right;
 } 

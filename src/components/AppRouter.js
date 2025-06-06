@@ -15,12 +15,12 @@ import Settings from './settings/Settings';
 const INITIAL_SCHEDULE_DATA = {};
 
 const INITIAL_EMPLOYEES = [
-  { id: 1, name: 'Sabine', role: 'Vollzeit', qualifications: ['WG1', 'WG2', 'Nachtdienst'] },
-  { id: 2, name: 'Manu', role: 'Vollzeit', qualifications: ['WG1', 'Kochen'] },
-  { id: 3, name: 'Levin', role: 'Teilzeit', qualifications: ['Schule', 'Freizeitaktivitäten'] },
-  { id: 7, name: 'Eva', role: 'Teilzeit', qualifications: ['WG1', 'Nachmittagsprogramm'] },
-  { id: 8, name: 'Fabi', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'] },
-  { id: 10, name: 'Admin', role: ROLES.ADMIN, qualifications: ['Administration'], password: 'Admin' }
+  { id: 1, name: 'Sabine', role: 'Vollzeit', qualifications: ['WG1', 'WG2', 'Nachtdienst'], workingHours: 40 },
+  { id: 2, name: 'Manu', role: 'Vollzeit', qualifications: ['WG1', 'Kochen'], workingHours: 40 },
+  { id: 3, name: 'Levin', role: 'Teilzeit', qualifications: ['Schule', 'Freizeitaktivitäten'], workingHours: 20 },
+  { id: 7, name: 'Eva', role: 'Teilzeit', qualifications: ['WG1', 'Nachmittagsprogramm'], workingHours: 25 },
+  { id: 8, name: 'Fabi', role: 'Vollzeit', qualifications: ['WG2', 'Nachtdienst'], workingHours: 40 },
+  { id: 10, name: 'Admin', role: ROLES.ADMIN, qualifications: ['Administration'], workingHours: 40, password: 'Admin' }
 ];
 
 const INITIAL_CHILDREN = [

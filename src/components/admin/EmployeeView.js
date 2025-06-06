@@ -12,7 +12,8 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
   const [formData, setFormData] = useState({
     name: '',
     role: 'Vollzeit',
-    qualifications: []
+    qualifications: [],
+    workingHours: 40
   });
   const [newQualification, setNewQualification] = useState('');
 
@@ -36,7 +37,7 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
     
     setShowModal(false);
     setEditingEmployee(null);
-    setFormData({ name: '', role: 'Vollzeit', qualifications: [] });
+    setFormData({ name: '', role: 'Vollzeit', qualifications: [], workingHours: 40 });
   };
 
   const handleEdit = (employee) => {
@@ -44,9 +45,19 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
     setFormData({
       name: employee.name,
       role: employee.role,
-      qualifications: [...employee.qualifications]
+      qualifications: [...employee.qualifications],
+      workingHours: employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0)
     });
     setShowModal(true);
+  };
+
+  const handleRoleChange = (e) => {
+    const newRole = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      role: newRole,
+      workingHours: newRole === 'Vollzeit' ? 40 : prev.workingHours
+    }));
   };
 
   const handleDelete = (id) => {
@@ -77,11 +88,13 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
     setShowHoursOverview(true);
   };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.qualifications.some(q => q.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredEmployees = employees
+    .filter(emp => emp.role !== 'admin')
+    .filter(emp =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.qualifications.some(q => q.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
   return (
     <div className="settings-container">
@@ -103,7 +116,7 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
                 className="button primary" 
                 onClick={() => {
                   setEditingEmployee(null);
-                  setFormData({ name: '', role: 'Vollzeit', qualifications: [] });
+                  setFormData({ name: '', role: 'Vollzeit', qualifications: [], workingHours: 40 });
                   setShowModal(true);
                 }}
               >
@@ -120,16 +133,22 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
                     <h3 className="list-item-title">{employee.name}</h3>
                     <span className="list-item-group">{employee.role}</span>
                   </div>
-                  {employee.qualifications.length > 0 && (
-                    <div className="list-item-details">
+                  <div className="list-item-details">
+                    {employee.qualifications.length > 0 && (
                       <div className="detail-item">
                         <span className="detail-label">Qualifikationen:</span>
                         <div className="detail-value">
                           {employee.qualifications.join(', ')}
                         </div>
                       </div>
+                    )}
+                    <div className="detail-item">
+                      <span className="detail-label">Wochenarbeitsstunden:</span>
+                      <div className="detail-value">
+                        {employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0)} Stunden
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
                 <div className="list-item-actions">
                   <button
@@ -167,7 +186,7 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
         onClose={() => {
           setShowModal(false);
           setEditingEmployee(null);
-          setFormData({ name: '', role: 'Vollzeit', qualifications: [] });
+          setFormData({ name: '', role: 'Vollzeit', qualifications: [], workingHours: 40 });
         }}
         title={editingEmployee ? "Mitarbeiter bearbeiten" : "Mitarbeiter hinzufügen"}
       >
@@ -188,13 +207,29 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
             <select
               className="form-select"
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              onChange={handleRoleChange}
             >
               <option value="Vollzeit">Vollzeit</option>
               <option value="Teilzeit">Teilzeit</option>
               <option value="Aushilfe">Aushilfe</option>
             </select>
           </div>
+
+          {formData.role !== 'Vollzeit' && (
+            <div className="form-group">
+              <label className="form-label">Wochenarbeitsstunden</label>
+              <input
+                type="number"
+                className="form-input-full"
+                value={formData.workingHours}
+                onChange={(e) => setFormData({ ...formData, workingHours: parseFloat(e.target.value) || 0 })}
+                min="0"
+                max="40"
+                step="0.5"
+                required
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Qualifikationen</label>
@@ -204,7 +239,6 @@ function EmployeeView({ employees, setEmployees, scheduleData, shiftTypes }) {
                 className="form-select-sm"
                 value={newQualification}
                 onChange={(e) => setNewQualification(e.target.value)}
-                placeholder="Neue Qualifikation"
               />
               <button
                 type="button"
