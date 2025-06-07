@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { formatDate, DATE_FORMATS } from '../utils/dateUtils';
 
 function AdminNotifications({ requests, onApprove, onReject }) {
   const [adminComment, setAdminComment] = useState('');
@@ -29,129 +28,90 @@ function AdminNotifications({ requests, onApprove, onReject }) {
     setSelectedRequest(null);
   };
 
-  const formatDate = (dateString) => {
-    return format(new Date(dateString), 'dd.MM.yyyy', { locale: de });
-  };
-
   return (
     <div className="admin-notifications">
-      <h2>Benachrichtigungen</h2>
-      {pendingRequests.length > 0 && (
-        <div className="pending-section">
-          <h3>Ausstehende Anträge</h3>
-          <div className="request-list">
-            {pendingRequests.map(request => (
-              <div key={request.id} className="request-card">
-                <div className="request-header">
-                  <span className="request-type">
-                    {request.type === 'vacation' ? '🏖️ Urlaubsantrag' : '🏥 Krankmeldung'}
-                  </span>
-                  <span className="request-date">
-                    Eingereicht am {formatDate(request.submittedAt)}
-                  </span>
-                </div>
-                <div className="request-content">
-                  <div className="employee-info">
-                    <strong>{request.employeeName}</strong>
-                  </div>
-                  <div className="date-range">
-                    {formatDate(request.startDate)} - {formatDate(request.endDate)}
-                  </div>
-                  {request.notes && (
-                    <div className="request-notes">
-                      <strong>Notizen:</strong> {request.notes}
-                    </div>
-                  )}
-                  {selectedRequest?.id === request.id ? (
-                    <div className="admin-response">
-                      <textarea
-                        value={adminComment}
-                        onChange={(e) => setAdminComment(e.target.value)}
-                        placeholder="Kommentar hinzufügen..."
-                        className="form-input-full"
-                        rows="2"
-                      />
-                      <div className="button-group">
-                        <button
-                          className="button"
-                          onClick={() => handleApprove(request)}
-                        >
-                          Genehmigen
-                        </button>
-                        <button
-                          className="button secondary"
-                          onClick={() => handleReject(request)}
-                        >
-                          Ablehnen
-                        </button>
-                        <button
-                          className="button secondary"
-                          onClick={() => {
-                            setSelectedRequest(null);
-                            setAdminComment('');
-                          }}
-                        >
-                          Abbrechen
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      className="button"
-                      onClick={() => setSelectedRequest(request)}
-                    >
-                      Bearbeiten
-                    </button>
-                  )}
-                </div>
+      <h3>Anfragen</h3>
+      
+      <div className="requests-section">
+        <h4>Offene Anfragen</h4>
+        {pendingRequests.map(request => (
+          <div key={request.id} className="request-card">
+            <div className="request-header">
+              <span className="employee-name">{request.employeeName}</span>
+              <span className="request-type">
+                {request.type === 'vacation' ? '🏖️ Urlaub' : '🏥 Krankmeldung'}
+              </span>
+            </div>
+            <div className="request-dates">
+              <div>Von: {formatDate(request.startDate)}</div>
+              <div>Bis: {formatDate(request.endDate)}</div>
+            </div>
+            {request.notes && (
+              <div className="request-notes">{request.notes}</div>
+            )}
+            <div className="request-actions">
+              <textarea
+                value={adminComment}
+                onChange={(e) => setAdminComment(e.target.value)}
+                placeholder="Kommentar hinzufügen..."
+                className="admin-comment"
+              />
+              <div className="button-group">
+                <button
+                  onClick={() => handleApprove(request)}
+                  className="button approve"
+                >
+                  Genehmigen
+                </button>
+                <button
+                  onClick={() => handleReject(request)}
+                  className="button reject"
+                >
+                  Ablehnen
+                </button>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      )}
-      {processedRequests.length > 0 && (
-        <div className="processed-section">
-          <h3>Bearbeitete Anträge</h3>
-          <div className="request-list">
-            {processedRequests.map(request => (
-              <div 
-                key={request.id} 
-                className={`request-card ${request.status === 'approved' ? 'approved' : 'rejected'}`}
-              >
-                <div className="request-header">
-                  <span className="request-type">
-                    {request.type === 'vacation' ? '🏖️ Urlaubsantrag' : '🏥 Krankmeldung'}
-                  </span>
-                  <span className={`status-badge ${request.status === 'approved' ? 'badge-green' : 'badge-red'}`}>
-                    {request.status === 'approved' ? 'Genehmigt' : 'Abgelehnt'}
-                  </span>
-                </div>
-                <div className="request-content">
-                  <div className="employee-info">
-                    <strong>{request.employeeName}</strong>
-                  </div>
-                  <div className="date-range">
-                    {formatDate(request.startDate)} - {formatDate(request.endDate)}
-                  </div>
-                  {request.notes && (
-                    <div className="request-notes">
-                      <strong>Notizen:</strong> {request.notes}
-                    </div>
-                  )}
-                  {request.adminComment && (
-                    <div className="admin-comment">
-                      <strong>Admin-Kommentar:</strong> {request.adminComment}
-                    </div>
-                  )}
-                  <div className="processed-info">
-                    Bearbeitet am {formatDate(request.processedAt)}
-                  </div>
-                </div>
+        ))}
+        {pendingRequests.length === 0 && (
+          <p className="no-requests">Keine offenen Anfragen</p>
+        )}
+      </div>
+
+      <div className="requests-section">
+        <h4>Bearbeitete Anfragen</h4>
+        {processedRequests.map(request => (
+          <div key={request.id} className="request-card processed">
+            <div className="request-header">
+              <span className="employee-name">{request.employeeName}</span>
+              <span className="request-type">
+                {request.type === 'vacation' ? '🏖️ Urlaub' : '🏥 Krankmeldung'}
+              </span>
+              <span className={`status ${request.status}`}>
+                {request.status === 'approved' ? 'Genehmigt' : 'Abgelehnt'}
+              </span>
+            </div>
+            <div className="request-dates">
+              <div>Von: {formatDate(request.startDate)}</div>
+              <div>Bis: {formatDate(request.endDate)}</div>
+            </div>
+            {request.notes && (
+              <div className="request-notes">{request.notes}</div>
+            )}
+            {request.adminComment && (
+              <div className="admin-comment-display">
+                <strong>Admin-Kommentar:</strong> {request.adminComment}
               </div>
-            ))}
+            )}
+            <div className="processed-at">
+              Bearbeitet am: {formatDate(request.processedAt, `${DATE_FORMATS.DE_SHORT} ${DATE_FORMATS.DE_TIME}`)}
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+        {processedRequests.length === 0 && (
+          <p className="no-requests">Keine bearbeiteten Anfragen</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -8,11 +8,10 @@ import {
   checkDuplicateShifts,
   getDateFromWeek,
   getCurrentWeek,
-  isCurrentDay,
-  parseDate
+  isCurrentDay
 } from '../utils/shiftUtils';
 import { formatDate, DATE_FORMATS } from '../utils/dateUtils';
-import { DAYS_OF_WEEK, TIME_SLOTS } from '../constants';
+import { DAYS_OF_WEEK, TIME_SLOTS } from '../constants/dateFormats';
 import { exportScheduleAsPDF } from '../utils/pdfExport';
 import { 
   handleShiftSave as handleShiftSaveUtil,
@@ -85,7 +84,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   const days = useMemo(() => DAYS_OF_WEEK, []);
   const timeSlots = useMemo(() => TIME_SLOTS, []);
   
-
+  // Initialisiere weeks
   const [weeks] = useState([
     // 2025
     'KW 01 (30.12.2024 - 05.01.2025)',
@@ -304,8 +303,52 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     'KW 51 (18.12 - 24.12.2028)',
     'KW 52 (25.12 - 31.12.2028)'
   ]);
-  
-  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
+
+  // Finde die aktuelle Woche
+  const getCurrentWeekFromList = useCallback(() => {
+    const currentWeekStr = getCurrentWeek();
+    console.log('Aktuelle Woche (String):', currentWeekStr);
+    
+    const foundWeek = weeks.find(week => week === currentWeekStr);
+    console.log('Gefundene Woche:', foundWeek);
+    
+    if (!foundWeek) {
+      console.warn('Aktuelle Woche nicht in der Liste gefunden, verwende erste Woche:', weeks[0]);
+    }
+    
+    return foundWeek || weeks[0];
+  }, [weeks]);
+
+  // Initialisiere selectedWeek mit der aktuellen Woche
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    const initialWeek = getCurrentWeekFromList();
+    console.log('Initiale Woche:', initialWeek);
+    return initialWeek;
+  });
+
+  // Aktualisiere selectedWeek jede Minute
+  useEffect(() => {
+    console.log('Setting up interval for week updates');
+    const interval = setInterval(() => {
+      const currentWeek = getCurrentWeekFromList();
+      if (currentWeek !== selectedWeek) {
+        console.log('Aktualisiere Woche von', selectedWeek, 'zu', currentWeek);
+        setSelectedWeek(currentWeek);
+      }
+    }, 60000); // Überprüfe jede Minute
+
+    return () => {
+      console.log('Cleaning up interval');
+      clearInterval(interval);
+    };
+  }, [getCurrentWeekFromList]); // Entferne selectedWeek aus den Abhängigkeiten
+
+  // Debug-Ausgaben
+  useEffect(() => {
+    console.log('Weeks array:', weeks);
+    console.log('Selected week:', selectedWeek);
+  }, [weeks, selectedWeek]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [currentShift, setCurrentShift] = useState(null);
   const [modalData, setModalData] = useState({ day: '', time: '' });
@@ -330,18 +373,6 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       }
     }
   }, [scheduleData]);
-
-  // Effekt zum Aktualisieren der ausgewählten Woche, wenn sich das Datum ändert
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentWeek = getCurrentWeek();
-      if (currentWeek !== selectedWeek) {
-        setSelectedWeek(currentWeek);
-      }
-    }, 60000); // Prüfe jede Minute
-
-    return () => clearInterval(interval);
-  }, [selectedWeek]);
 
   // Füge einen Click-Handler zum Hintergrund hinzu
   useEffect(() => {
@@ -423,16 +454,51 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   }, [scheduleData, modalOpen, currentShift, modalData.day, modalData.time, selectedWeek]);
 
   const handleShiftClick = useCallback((shift, day, time) => {
-    console.log('Opening shift:', { 
-      shift, 
-      day, 
-      time,
-      selectedWeek,
-      scheduleData: scheduleData[selectedWeek]?.[day]?.[time]
-    });
+    console.log('handleShiftClick Parameter:', { shift, day, time, selectedWeek });
+    console.log('DAYS_OF_WEEK:', days);
+    console.log('Tag der Schicht:', day);
+    console.log('Index des Tages:', days.indexOf(day));
     
     setSelectedShiftId(shift.id);
-    setModalData({ day, time });
+    
+    // Extrahiere das Startdatum aus der selectedWeek
+    const weekMatch = selectedWeek.match(/\((\d{2}\.\d{2})\s*-/);
+    if (weekMatch) {
+      const [startDay, startMonth] = weekMatch[1].split('.');
+      const year = selectedWeek.match(/\.(\d{4})\)/)[1];
+      const dayIndex = days.indexOf(day);
+      
+      console.log('Datums-Berechnung:', {
+        startDay,
+        startMonth,
+        year,
+        dayIndex,
+        selectedWeek
+      });
+      
+      // Erstelle das Datum für den ersten Tag der Woche
+      const mondayDate = new Date(parseInt(year), parseInt(startMonth) - 1, parseInt(startDay));
+      const targetDate = new Date(mondayDate);
+      targetDate.setDate(mondayDate.getDate() + dayIndex);
+      
+      console.log('Berechnetes Datum:', targetDate.toISOString());
+      
+      const formattedDate = targetDate.toLocaleDateString('de-DE', {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      
+      console.log('Formatiertes Datum:', formattedDate);
+      
+      setModalData({ 
+        day,
+        time,
+        formattedDate
+      });
+    }
+    
     setShowDocumentations(false);
     
     const isUserShift = currentUser && (
@@ -444,6 +510,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
       try {
         // Hole die aktuelle Version der Schicht aus scheduleData
         let currentShiftData = null;
+        let correctTime = time;
         
         // Suche in allen Zeitslots des Tages
         if (scheduleData[selectedWeek]?.[day]) {
@@ -451,16 +518,17 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
             const foundShift = scheduleData[selectedWeek][day][timeSlot]?.find(s => s.id === shift.id);
             if (foundShift) {
               currentShiftData = foundShift;
-              // Aktualisiere modalData mit dem korrekten Zeitslot
-              setModalData({ day, time: timeSlot });
+              correctTime = timeSlot;
+              console.log('Gefundene Schicht:', { 
+                day, 
+                timeSlot, 
+                shiftId: shift.id
+              });
             }
           });
         }
         
-        console.log('Found shift in scheduleData:', currentShiftData);
-        
         if (currentShiftData) {
-          // Stelle sicher, dass documentations als Array initialisiert ist
           const shiftWithDocs = {
             ...currentShiftData,
             documentations: Array.isArray(currentShiftData.documentations) 
@@ -468,10 +536,13 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
               : []
           };
           
-          console.log('Setting currentShift with docs:', shiftWithDocs);
           setCurrentShift(shiftWithDocs);
+          setModalData(prev => ({ 
+            ...prev, 
+            time: correctTime
+          }));
         } else {
-          console.warn('Shift not found in scheduleData, creating new shift object');
+          console.warn('Schicht nicht gefunden:', { day, time, shiftId: shift.id });
           const newShift = {
             ...shift,
             documentations: []
@@ -485,7 +556,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         alert('Beim Laden der Schichtdaten ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.');
       }
     }
-  }, [isEditable, currentUser, scheduleData, selectedWeek]);
+  }, [isEditable, currentUser, scheduleData, selectedWeek, days]);
 
   const handleAddShift = useCallback((day, time) => {
     setModalData({ day, time });
@@ -525,18 +596,57 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
   }, [scheduleData, selectedWeek, selectedEmployee, days, shiftTypes, timeSlots]);
 
   // Memoize the current date check to avoid unnecessary re-renders
-  const getCurrentDateString = useCallback((day, index) => {
-    const dateString = getDateFromWeek(selectedWeek, selectedDay ? days.indexOf(selectedDay) : index);
-    const isToday = isCurrentDay(dateString);
-    return { dateString, isToday };
+  const getCurrentDateString = useMemo(() => {
+    const calculateDate = (day, index) => {
+      const dateString = getDateFromWeek(selectedWeek, selectedDay ? days.indexOf(selectedDay) : index);
+      const isToday = isCurrentDay(dateString);
+      return { dateString, isToday };
+    };
+    return calculateDate;
   }, [selectedWeek, selectedDay, days]);
 
   // Hilfsfunktion zum Formatieren des Datums
   const formatWeekDayDate = (weekString, day) => {
-    const dateString = getDateFromWeek(weekString, days.indexOf(day));
-    const [day_str, month_str, year_str] = dateString.split('.');
-    const parsedDate = new Date(year_str, parseInt(month_str) - 1, parseInt(day_str));
-    return formatDate(parsedDate, DATE_FORMATS.WEEKDAY_DATE);
+    console.log('formatWeekDayDate Input:', { weekString, day });
+    
+    // Extrahiere das Startdatum aus dem weekString
+    const dateMatch = weekString.match(/\((\d{2}\.\d{2})\s*-/);
+    if (!dateMatch) {
+      console.error('Konnte Startdatum nicht aus weekString extrahieren:', weekString);
+      return '';
+    }
+    
+    const [startDay, startMonth] = dateMatch[1].split('.');
+    const year = weekString.match(/\.(\d{4})\)/)[1];
+    
+    // Finde den Index des Tages (0 = Montag, 6 = Sonntag)
+    const dayIndex = days.indexOf(day);
+    console.log('Tag und Index:', { day, dayIndex, days });
+    
+    if (dayIndex === -1) {
+      console.error('Ungültiger Tag:', day);
+      return '';
+    }
+    
+    // Erstelle das Datum für den ersten Tag der Woche
+    const date = new Date(parseInt(year), parseInt(startMonth) - 1, parseInt(startDay));
+    console.log('Startdatum der Woche:', date.toISOString());
+    
+    // Addiere die Tage entsprechend dem Index
+    const targetDate = new Date(date);
+    targetDate.setDate(date.getDate() + dayIndex);
+    console.log('Berechnetes Datum:', targetDate.toISOString());
+    
+    // Formatiere das Datum
+    const formattedDate = targetDate.toLocaleDateString('de-DE', {
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    
+    console.log('Formatiertes Datum:', formattedDate);
+    return formattedDate;
   };
 
   // Hilfsfunktion zum Ermitteln der Start- und Endzeit
@@ -594,12 +704,43 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     setScheduleData(updatedScheduleData);
   };
   
-  // Navigation
+  // Hilfsfunktion zum Generieren des Wochenstrings
+  const getWeekString = (weekNumber, year) => {
+    // Berechne das Datum für den ersten Tag der Woche (Montag)
+    const firstDayOfWeek = getFirstDayOfWeek(weekNumber, year);
+    
+    // Berechne das Datum für den letzten Tag der Woche (Sonntag)
+    const lastDayOfWeek = new Date(firstDayOfWeek);
+    lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+    
+    // Formatiere die Daten
+    const firstDayFormatted = formatDate(firstDayOfWeek, DATE_FORMATS.SHORT_DATE);
+    const lastDayFormatted = formatDate(lastDayOfWeek, DATE_FORMATS.SHORT_DATE_WITH_YEAR);
+    
+    return `KW ${weekNumber.toString().padStart(2, '0')} (${firstDayFormatted} - ${lastDayFormatted})`;
+  };
+
+  // Hilfsfunktion zum Berechnen des ersten Tags einer Kalenderwoche
+  const getFirstDayOfWeek = (weekNumber, year) => {
+    // Erstelle ein Datum für den 4. Januar des Jahres (dieser Tag liegt immer in KW 1)
+    const jan4 = new Date(year, 0, 4);
+    
+    // Finde den Montag dieser Woche
+    const firstMondayOfYear = new Date(jan4);
+    firstMondayOfYear.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
+    
+    // Berechne den Montag der gewünschten Woche
+    const targetMonday = new Date(firstMondayOfYear);
+    targetMonday.setDate(firstMondayOfYear.getDate() + (weekNumber - 1) * 7);
+    
+    return targetMonday;
+  };
+
   const goToPreviousWeek = () => {
     const currentIndex = weeks.indexOf(selectedWeek);
     if (currentIndex > 0) setSelectedWeek(weeks[currentIndex - 1]);
   };
-  
+
   const goToNextWeek = () => {
     const currentIndex = weeks.indexOf(selectedWeek);
     if (currentIndex < weeks.length - 1) setSelectedWeek(weeks[currentIndex + 1]);
@@ -780,21 +921,21 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
             <button
               className="week-nav-button"
               onClick={goToPreviousWeek}
-              disabled={weeks.indexOf(selectedWeek) === 0}
+              disabled={weeks.indexOf(selectedWeek) === weeks.length - 1}
             >◀</button>
             <select
               className="filter-select"
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(e.target.value)}
             >
-              {weeks.map((week) => (
+              {[...weeks].reverse().map((week) => (
                 <option key={week} value={week}>{week}</option>
               ))}
             </select>
             <button
               className="week-nav-button"
               onClick={goToNextWeek}
-              disabled={weeks.indexOf(selectedWeek) === weeks.length - 1}
+              disabled={weeks.indexOf(selectedWeek) === 0}
             >▶</button>
           </div>
           {isEditable && (
@@ -946,14 +1087,29 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         >
           <div className="modal-content">
             <div className="shift-details">
-              <p><strong>Schichttyp:</strong> {currentShift?.isCustom ? currentShift.customTitle : shiftTypes.find(t => t.id === currentShift?.shiftTypeId)?.name}</p>
-              <p><strong>Datum:</strong> {formatWeekDayDate(selectedWeek, modalData.day)}</p>
-              <p><strong>Uhrzeit:</strong> {getShiftTimes(currentShift, modalData.time)}</p>
+              <div className="detail-item">
+                <strong>Schichttyp</strong>
+                <span>{currentShift?.isCustom ? currentShift.customTitle : shiftTypes.find(t => t.id === currentShift?.shiftTypeId)?.name}</span>
+              </div>
+              <div className="detail-item">
+                <strong>Datum</strong>
+                <span>{modalData.formattedDate}</span>
+              </div>
+              <div className="detail-item">
+                <strong>Uhrzeit</strong>
+                <span>{getShiftTimes(currentShift, modalData.time)}</span>
+              </div>
               {currentShift?.tasks?.length > 0 && (
-                <p><strong>Aufgaben:</strong> {currentShift.tasks.join(', ')}</p>
+                <div className="detail-item">
+                  <strong>Aufgaben</strong>
+                  <span>{currentShift.tasks.join(', ')}</span>
+                </div>
               )}
               {currentShift?.notes && (
-                <p><strong>Notizen:</strong> {currentShift.notes}</p>
+                <div className="detail-item">
+                  <strong>Notizen</strong>
+                  <span>{currentShift.notes}</span>
+                </div>
               )}
             </div>
 

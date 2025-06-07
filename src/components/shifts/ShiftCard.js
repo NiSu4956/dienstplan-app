@@ -54,12 +54,14 @@ const ShiftCard = memo(({
               {getEmployeeNames(shift, employees)}
             </div>
             {shift.tasks?.length > 0 && (
-              <div className="shift-notes">
-                <strong>Aufgaben:</strong> {shift.tasks.join(', ')}
+              <div className="shift-tasks">
+                {shift.tasks.join(', ')}
               </div>
             )}
             {shift.notes && (
-              <div className="shift-notes">{shift.notes}</div>
+              <div className="shift-notes">
+                {shift.notes}
+              </div>
             )}
           </>
         )}

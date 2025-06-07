@@ -1,16 +1,15 @@
-import { parse, eachDayOfInterval, format } from 'date-fns';
+import { parse } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { 
+  DATE_FORMATS, 
+  formatDate, 
+  getDatesInRange 
+} from './dateUtils';
+import { DAYS_OF_WEEK } from '../constants/dateFormats';
 
 const REQUEST_TYPES = {
   VACATION: 'vacation',
   SICK: 'sickness'
-};
-
-const DATE_FORMATS = {
-  DE: 'dd.MM.yyyy',
-  ISO: 'yyyy-MM-dd',
-  WEEK: "'KW' ww '('dd.MM - dd.MM.yyyy')'",
-  DAY: 'EEEE'
 };
 
 const CUSTOM_SHIFTS = {
@@ -24,12 +23,10 @@ const CUSTOM_SHIFTS = {
   }
 };
 
-const DAYS_OF_WEEK = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-
 const MAX_REQUEST_DAYS = 30;
 
 const createCustomShift = (request, date, weekNumber) => ({
-  id: `${request.id}-${format(date, DATE_FORMATS.ISO)}`,
+  id: `${request.id}-${formatDate(date, DATE_FORMATS.ISO)}`,
   type: request.type === REQUEST_TYPES.VACATION ? REQUEST_TYPES.VACATION : REQUEST_TYPES.SICK,
   customTitle: request.type === REQUEST_TYPES.VACATION ? CUSTOM_SHIFTS.VACATION.title : CUSTOM_SHIFTS.SICK.title,
   customStartTime: '00:00',
@@ -40,17 +37,17 @@ const createCustomShift = (request, date, weekNumber) => ({
   name: request.employeeName,
   notes: request.notes,
   week: weekNumber,
-  day: format(date, DATE_FORMATS.DAY, { locale: de })
+  day: formatDate(date, DATE_FORMATS.WEEKDAY)
 });
 
 export const createShiftFromRequest = (request) => {
-  const startDate = parse(request.startDate, DATE_FORMATS.DE, new Date());
-  const endDate = parse(request.endDate, DATE_FORMATS.DE, new Date());
+  const startDate = parse(request.startDate, DATE_FORMATS.DE_SHORT, new Date());
+  const endDate = parse(request.endDate, DATE_FORMATS.DE_SHORT, new Date());
   
-  const daysInRange = eachDayOfInterval({ start: startDate, end: endDate });
+  const daysInRange = getDatesInRange(startDate, endDate);
   
   return daysInRange.map(date => {
-    const weekNumber = format(date, DATE_FORMATS.WEEK);
+    const weekNumber = formatDate(date, DATE_FORMATS.WEEK);
     return createCustomShift(request, date, weekNumber);
   });
 };
@@ -171,15 +168,7 @@ export const validateRequest = (request, scheduleData) => {
   };
 };
 
-const formatDate = (date) => {
-  return date.toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-};
-
-const getDayDateFromWeekAndDay = (weekKey, dayKey) => {
+export const getDayDateFromWeekAndDay = (weekKey, dayKey) => {
   const weekMatch = weekKey.match(/KW \d+ \((\d{2}\.\d{2}) - \d{2}\.\d{2}\.(\d{4})\)/);
   if (!weekMatch) return null;
 
@@ -192,6 +181,4 @@ const getDayDateFromWeekAndDay = (weekKey, dayKey) => {
   const date = new Date(year, startMonth - 1, startDay);
   date.setDate(date.getDate() + dayIndex);
   return date;
-};
-
-export { formatDate, getDayDateFromWeekAndDay }; 
+}; 
