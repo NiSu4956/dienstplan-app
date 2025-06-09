@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, Link, useLocation } from 'react-router-dom';
 import WeekView from './WeekView';
 import EmployeePortal from './EmployeePortal';
@@ -10,6 +10,7 @@ import { STORAGE_KEYS, ROLES, REQUEST_TYPES, DEFAULT_TIME_SLOT, DAYS_OF_WEEK } f
 import Navigation from './Navigation';
 import Dashboard from './Dashboard';
 import Settings from './settings/Settings';
+import { jsToArrayIndex, jsToISODay, getMonday, getDayNameFromJS } from '../utils/dayUtils';
 
 // Memoized initial data
 const INITIAL_SCHEDULE_DATA = {};
@@ -197,6 +198,10 @@ function AppRouter() {
     }]);
   }, [currentUser, scheduleData]);
 
+  const getDayName = useCallback((date) => {
+    return getDayNameFromJS(date.getDay());
+  }, []);
+
   const getWeekNumber = useCallback((date) => {
     const dateString = date.toISOString();
     const cacheKey = `week_${dateString}`;
@@ -206,20 +211,13 @@ function AppRouter() {
     }
 
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const isoDay = jsToISODay(d.getUTCDay());
+    d.setUTCDate(d.getUTCDate() + 4 - isoDay);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     const result = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     
     dateCache.set(cacheKey, result);
     return result;
-  }, []);
-
-  const getDayName = useCallback((date) => {
-    const day = date.getDay();
-    // In JavaScript ist Sonntag 0, wir brauchen aber Montag als 0
-    const adjustedDay = day === 0 ? 6 : day - 1;
-    return DAYS_OF_WEEK[adjustedDay];
   }, []);
 
   const getWeekKey = useCallback((date) => {
@@ -230,8 +228,7 @@ function AppRouter() {
 
     const weekNumber = getWeekNumber(date);
     const year = date.getFullYear();
-    const startDate = new Date(date);
-    startDate.setDate(date.getDate() - date.getDay() + 1);
+    const startDate = getMonday(date);
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 

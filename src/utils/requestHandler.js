@@ -3,8 +3,14 @@ import { de } from 'date-fns/locale';
 import { 
   DATE_FORMATS, 
   formatDate, 
-  getDatesInRange 
+  getDatesInRange,
+  getWeekString 
 } from './dateUtils';
+import { 
+  jsToISODay, 
+  getDayNameFromJS,
+  isWorkday 
+} from './dayUtils';
 import { DAYS_OF_WEEK } from '../constants/dateFormats';
 
 const REQUEST_TYPES = {
@@ -15,11 +21,15 @@ const REQUEST_TYPES = {
 const CUSTOM_SHIFTS = {
   VACATION: {
     title: '🏖️ Urlaub',
-    color: 'blue'
+    color: 'blue',
+    startTime: '00:00',
+    endTime: '23:59'
   },
   SICK: {
     title: '🏥 Krank',
-    color: 'red'
+    color: 'red',
+    startTime: '00:00',
+    endTime: '23:59'
   }
 };
 
@@ -29,15 +39,15 @@ const createCustomShift = (request, date, weekNumber) => ({
   id: `${request.id}-${formatDate(date, DATE_FORMATS.ISO)}`,
   type: request.type === REQUEST_TYPES.VACATION ? REQUEST_TYPES.VACATION : REQUEST_TYPES.SICK,
   customTitle: request.type === REQUEST_TYPES.VACATION ? CUSTOM_SHIFTS.VACATION.title : CUSTOM_SHIFTS.SICK.title,
-  customStartTime: '00:00',
-  customEndTime: '23:59',
+  customStartTime: request.type === REQUEST_TYPES.VACATION ? CUSTOM_SHIFTS.VACATION.startTime : CUSTOM_SHIFTS.SICK.startTime,
+  customEndTime: request.type === REQUEST_TYPES.VACATION ? CUSTOM_SHIFTS.VACATION.endTime : CUSTOM_SHIFTS.SICK.endTime,
   customColor: request.type === REQUEST_TYPES.VACATION ? CUSTOM_SHIFTS.VACATION.color : CUSTOM_SHIFTS.SICK.color,
   isCustom: true,
   customEmployeeIds: [request.employeeId],
   name: request.employeeName,
   notes: request.notes,
   week: weekNumber,
-  day: formatDate(date, DATE_FORMATS.WEEKDAY)
+  day: getDayNameFromJS(date.getDay())
 });
 
 export const createShiftFromRequest = (request) => {
@@ -96,27 +106,24 @@ const validateRequestDates = (startDate, endDate) => {
 };
 
 const validateVacationConflicts = (request, scheduleData, startDate, endDate) => {
-  for (const weekKey in scheduleData) {
-    const weekData = scheduleData[weekKey];
-    for (const dayKey in weekData) {
-      const dayData = weekData[dayKey];
-      const currentDate = getDayDateFromWeekAndDay(weekKey, dayKey);
-      
-      if (!currentDate) continue;
-      
-      currentDate.setHours(0, 0, 0, 0);
-      
-      if (currentDate >= startDate && currentDate <= endDate) {
-        const hasConflict = checkDayConflicts(dayData, request.employeeId, currentDate);
-        if (hasConflict) {
-          return {
-            isValid: false,
-            message: `Sie sind am ${formatDate(currentDate)} bereits für eine Schicht eingeplant. Ein Urlaubsantrag ist für diesen Tag nicht möglich.`
-          };
-        }
+  const dates = getDatesInRange(startDate, endDate);
+  
+  for (const date of dates) {
+    // Für Urlaub auch Sonntage prüfen
+    const weekKey = getWeekString(date);
+    const dayKey = getDayNameFromJS(date.getDay());
+    
+    if (scheduleData[weekKey]?.[dayKey]) {
+      const hasConflict = checkDayConflicts(scheduleData[weekKey][dayKey], request.employeeId, date);
+      if (hasConflict) {
+        return {
+          isValid: false,
+          message: `Sie sind am ${formatDate(date)} bereits für eine Schicht eingeplant. Ein Urlaubsantrag ist für diesen Tag nicht möglich.`
+        };
       }
     }
   }
+  
   return { isValid: true };
 };
 

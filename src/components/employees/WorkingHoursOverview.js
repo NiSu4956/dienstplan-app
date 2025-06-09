@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../common/Modal';
 import { jsPDF } from 'jspdf';
 import { 
@@ -8,6 +8,7 @@ import {
   DATE_FORMATS 
 } from '../../utils/dateUtils';
 import { MONTHS } from '../../constants/dateFormats';
+import { isWeekend, getDayIndexFromName } from '../../utils/dayUtils';
 
 function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -51,7 +52,7 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
       currentWeekNumber = weekNumber;
 
       Object.entries(weekData).forEach(([day, dayData]) => {
-        const dayIndex = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'].indexOf(day);
+        const dayIndex = getDayIndexFromName(day);
         if (dayIndex === -1) return;
 
         const weekStartDate = parseWeekString(week);
@@ -617,8 +618,7 @@ function getWorkingDaysInMonth(year, month) {
   let workingDays = 0;
 
   for (let day = firstDay; day <= lastDay; day.setDate(day.getDate() + 1)) {
-    // 0 = Sonntag, 6 = Samstag
-    if (day.getDay() !== 0 && day.getDay() !== 6) {
+    if (!isWeekend(day)) {
       workingDays++;
     }
   }

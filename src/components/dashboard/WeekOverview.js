@@ -1,35 +1,10 @@
 import React, { useState } from 'react';
+import { DAYS_OF_WEEK } from '../../constants';
 
-function WeekOverview() {
-  const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+function WeekOverview({ scheduleData, selectedWeek }) {
   const timeSlots = ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
                      '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
   
-  // Sample data
-  const [scheduleData] = useState({
-    'Montag': {
-      '7:00': [{ name: 'Sabine', task: 'Frühstück', color: 'bg-blue-100' }],
-      '8:00': [{ name: 'Manu', task: 'WG1', color: 'bg-green-100' }],
-      '9:00': [{ name: 'Levin', task: 'Schule', color: 'bg-yellow-100' }],
-      '14:00': [{ name: 'CK', task: 'Nachmittagsprogramm', color: 'bg-purple-100' }],
-      '18:00': [{ name: 'Nelli', task: 'Abendessen', color: 'bg-red-100' }],
-      '21:00': [{ name: 'PD', task: 'Nachtdienst', color: 'bg-gray-100' }],
-    },
-    'Dienstag': {
-      '7:00': [{ name: 'Manu', task: 'Frühstück', color: 'bg-blue-100' }],
-      '9:00': [{ name: 'Sabine', task: 'WG2', color: 'bg-green-100' }],
-      '14:00': [{ name: 'Daniel', task: 'Nachmittagsprogramm', color: 'bg-purple-100' }],
-      '18:00': [{ name: 'Eva', task: 'Abendessen', color: 'bg-red-100' }],
-      '21:00': [{ name: 'Fabi', task: 'Nachtdienst', color: 'bg-gray-100' }],
-    },
-    'Mittwoch': {
-      '8:00': [{ name: 'CK', task: 'WG1', color: 'bg-green-100' }],
-      '13:00': [{ name: 'Nelli', task: 'Kochen', color: 'bg-red-100' }],
-      '15:00': [{ name: 'Eva', task: 'Nachmittagsprogramm', color: 'bg-purple-100' }],
-    },
-  });
-  
-  const [selectedWeek, setSelectedWeek] = useState('KW 21 (19.05 - 25.05.2025)');
   const weeks = [
     'KW 20 (12.05 - 18.05.2025)',
     'KW 21 (19.05 - 25.05.2025)',
@@ -61,7 +36,7 @@ function WeekOverview() {
           <thead>
             <tr>
               <th className="w-20 px-2 py-3 border bg-gray-50 text-left text-sm font-medium text-gray-600 sticky left-0 z-10">Zeit</th>
-              {days.map((day) => (
+              {DAYS_OF_WEEK.map((day) => (
                 <th key={day} className="px-3 py-3 border bg-gray-50 text-left text-sm font-medium text-gray-600">
                   {day}
                 </th>
@@ -72,7 +47,7 @@ function WeekOverview() {
             {timeSlots.map((time) => (
               <tr key={time} className="hover:bg-gray-50">
                 <td className="px-2 py-3 border bg-gray-50 text-sm text-gray-600 font-medium sticky left-0 z-10">{time}</td>
-                {days.map((day) => (
+                {DAYS_OF_WEEK.map((day) => (
                   <td key={`${day}-${time}`} className="px-2 py-2 border relative schedule-cell">
                     {scheduleData[day] && scheduleData[day][time] ? (
                       <div className="flex flex-col gap-1">

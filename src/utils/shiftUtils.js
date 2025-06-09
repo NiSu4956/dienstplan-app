@@ -1,4 +1,10 @@
 import { formatDate } from './dateUtils';
+import { 
+  jsToISODay, 
+  getDayNameFromJS, 
+  getDayIndexFromName,
+  getMonday
+} from './dayUtils';
 
 // Cache für getTimeInMinutes
 const timeCache = new Map();
@@ -222,54 +228,50 @@ export const checkDuplicateShifts = (day, shiftTypeId, currentShiftId, scheduleD
 // Hilfsfunktion zum Extrahieren des Datums aus der Kalenderwoche
 export const getDateFromWeek = (weekString, dayIndex) => {
   console.log('getDateFromWeek Input:', { weekString, dayIndex });
-
+  
   try {
-    // Extrahiere das Startdatum aus dem weekString (z.B. "KW 23 (02.06 - 08.06.2025)")
-    const match = weekString.match(/\((\d{2})\.(\d{2})\s*-.*?(\d{4})\)/);
-    if (!match) {
-      console.error('Konnte Datum nicht aus weekString extrahieren:', weekString);
+    // Extrahiere das Startdatum aus dem weekString
+    const dateMatch = weekString.match(/\((\d{2}\.\d{2})\s*-/);
+    if (!dateMatch) {
+      console.error('Konnte Startdatum nicht aus weekString extrahieren:', weekString);
       return '';
     }
-
-    const [_, startDay, startMonth, year] = match;
+    
+    const [startDay, startMonth] = dateMatch[1].split('.');
+    const year = weekString.match(/\.(\d{4})\)/)[1];
     
     // Erstelle das Datum für den ersten Tag der Woche (Montag)
-    // Setze die Zeit auf 12:00 Uhr mittags, um Probleme mit Zeitzonen zu vermeiden
-    const mondayDate = new Date(parseInt(year), parseInt(startMonth) - 1, parseInt(startDay), 12, 0, 0);
+    const mondayDate = new Date(parseInt(year), parseInt(startMonth) - 1, parseInt(startDay));
     console.log('Montag der Woche:', mondayDate.toISOString());
-
+    
     // Konvertiere dayIndex zu einer Zahl, falls es ein String ist
     let normalizedDayIndex = 0;
     if (typeof dayIndex === 'number') {
       normalizedDayIndex = dayIndex;
     } else if (typeof dayIndex === 'string') {
-      // Wenn dayIndex ein Wochentag ist (z.B. "Mittwoch"), konvertiere zu Index
-      const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-      normalizedDayIndex = dayNames.indexOf(dayIndex);
+      normalizedDayIndex = getDayIndexFromName(dayIndex);
       if (normalizedDayIndex === -1) {
-        // Wenn kein gültiger Wochentag, versuche als Zahl zu parsen
         normalizedDayIndex = parseInt(dayIndex) || 0;
       }
     }
     
-    // Stelle sicher, dass der Index zwischen 0 und 6 liegt
+    // Stelle sicher, dass der Index im gültigen Bereich liegt (0-6)
     normalizedDayIndex = Math.min(Math.max(normalizedDayIndex, 0), 6);
     console.log('Normalisierter Tagesindex:', normalizedDayIndex);
     
-    // Addiere die Anzahl der Tage zum Montag
+    // Berechne das Zieldatum
     const targetDate = new Date(mondayDate);
     targetDate.setDate(mondayDate.getDate() + normalizedDayIndex);
-    console.log('Zieldatum:', targetDate.toISOString());
-
+    console.log('Berechnetes Datum:', targetDate.toISOString());
+    
     // Formatiere das Datum als DD.MM.YYYY
-    // Verwende die lokale Zeitzone für die Formatierung
     const formattedDate = new Intl.DateTimeFormat('de-DE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       timeZone: 'Europe/Berlin'
     }).format(targetDate);
-
+    
     console.log('Formatiertes Datum:', formattedDate);
     return formattedDate;
   } catch (error) {
@@ -283,10 +285,8 @@ export const getCurrentWeek = () => {
   // Für Testzwecke: Setze das aktuelle Datum auf den 06.06.2025
   const now = new Date(2025, 5, 6); // Monate sind 0-basiert, daher 5 für Juni
   
-  // Montag dieser Woche finden (Montag = 1, Sonntag = 0)
-  const monday = new Date(now);
-  const dayOfWeek = monday.getDay() || 7; // Konvertiere Sonntag von 0 zu 7
-  monday.setDate(monday.getDate() - dayOfWeek + 1);
+  // Montag dieser Woche finden
+  const monday = getMonday(now);
   
   // Sonntag dieser Woche finden
   const sunday = new Date(monday);

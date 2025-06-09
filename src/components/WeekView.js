@@ -26,6 +26,7 @@ import {
   updateDocumentationInShift,
   deleteDocumentationFromShift
 } from '../utils/documentationManagement';
+import { getDayIndexFromName, getMonday, isWorkday, getWeekdayString } from '../utils/dayUtils';
 
 // Memoized Schedule Cell Component
 const ScheduleCell = memo(({ 
@@ -306,42 +307,54 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
 
   // Finde die aktuelle Woche
   const getCurrentWeekFromList = useCallback(() => {
-    const currentWeekStr = getCurrentWeek();
-    console.log('Aktuelle Woche (String):', currentWeekStr);
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+    const currentDay = today.getDate();
     
-    const foundWeek = weeks.find(week => week === currentWeekStr);
-    console.log('Gefundene Woche:', foundWeek);
+    const currentWeek = weeks.find(week => {
+      const match = week.match(/\((\d{2})\.(\d{2})\s*-\s*\d{2}\.\d{2}\.(\d{4})\)/);
+      if (!match) return false;
+
+      const [startDay, startMonth, year] = match.slice(1).map(Number);
+      if (year !== currentYear) return false;
+      
+      const weekStart = new Date(year, startMonth - 1, startDay);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      return today >= weekStart && today <= weekEnd;
+    });
     
-    if (!foundWeek) {
-      console.warn('Aktuelle Woche nicht in der Liste gefunden, verwende erste Woche:', weeks[0]);
+    if (!currentWeek) {
+      console.warn('Aktuelle Woche nicht in der Liste gefunden, suche nächstmögliche Woche');
+      // Wenn keine exakte Übereinstimmung gefunden wurde, finde die nächstmögliche Woche
+      return weeks.find(week => {
+        const match = week.match(/\((\d{2})\.(\d{2})\s*-\s*\d{2}\.\d{2}\.(\d{4})\)/);
+        if (!match) return false;
+
+        const [startDay, startMonth, year] = match.slice(1).map(Number);
+        const weekStart = new Date(year, startMonth - 1, startDay);
+        
+        return weekStart >= today;
+      }) || weeks[0];
     }
     
-    return foundWeek || weeks[0];
+    return currentWeek;
   }, [weeks]);
 
   // Initialisiere selectedWeek mit der aktuellen Woche
-  const [selectedWeek, setSelectedWeek] = useState(() => {
-    const initialWeek = getCurrentWeekFromList();
-    console.log('Initiale Woche:', initialWeek);
-    return initialWeek;
-  });
+  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeekFromList);
 
   // Aktualisiere selectedWeek jede Minute
   useEffect(() => {
-    console.log('Setting up interval for week updates');
     const interval = setInterval(() => {
       const currentWeek = getCurrentWeekFromList();
-      if (currentWeek !== selectedWeek) {
-        console.log('Aktualisiere Woche von', selectedWeek, 'zu', currentWeek);
-        setSelectedWeek(currentWeek);
-      }
+      setSelectedWeek(currentWeek);
     }, 60000); // Überprüfe jede Minute
 
-    return () => {
-      console.log('Cleaning up interval');
-      clearInterval(interval);
-    };
-  }, [getCurrentWeekFromList]); // Entferne selectedWeek aus den Abhängigkeiten
+    return () => clearInterval(interval);
+  }, [getCurrentWeekFromList]);
 
   // Debug-Ausgaben
   useEffect(() => {
@@ -571,13 +584,16 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     const result = {};
     for (const day of days) {
       if (scheduleData[selectedWeek][day]) {
+        // Alle Zeitslots durchsuchen für Abwesenheiten
         const dayShifts = Object.values(scheduleData[selectedWeek][day])
           .flat()
-          .filter((shift, index, self) => 
-            // Entferne Duplikate und filtere Urlaub/Krankheit aus
-            index === self.findIndex(s => s.id === shift.id) &&
-            !(shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick'))
-          );
+          .filter((shift, index, self) => {
+            // Entferne Duplikate basierend auf der ID
+            const isFirstOccurrence = index === self.findIndex(s => s.id === shift.id);
+            // Filtere Urlaub/Krankheit aus den normalen Schichten
+            const isNotAbsence = !(shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick'));
+            return isFirstOccurrence && isNotAbsence;
+          });
           
         if (selectedEmployee) {
           const filteredShifts = dayShifts.filter(shift => {
@@ -594,6 +610,29 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     }
     return result;
   }, [scheduleData, selectedWeek, selectedEmployee, days, shiftTypes, timeSlots]);
+
+  // Abwesenheiten separat verarbeiten
+  const absences = useMemo(() => {
+    if (!scheduleData[selectedWeek]) return {};
+    
+    const result = {};
+    for (const day of days) {
+      if (scheduleData[selectedWeek][day]) {
+        // Alle Zeitslots durchsuchen für Abwesenheiten
+        result[day] = Object.values(scheduleData[selectedWeek][day])
+          .flat()
+          .filter((shift, index, self) => 
+            shift?.isCustom && 
+            (shift.type === 'vacation' || shift.type === 'sick') &&
+            // Entferne Duplikate basierend auf der ID
+            index === self.findIndex(s => s.id === shift.id)
+          ) || [];
+      } else {
+        result[day] = [];
+      }
+    }
+    return result;
+  }, [scheduleData, selectedWeek, days]);
 
   // Memoize the current date check to avoid unnecessary re-renders
   const getCurrentDateString = useMemo(() => {
@@ -726,8 +765,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     const jan4 = new Date(year, 0, 4);
     
     // Finde den Montag dieser Woche
-    const firstMondayOfYear = new Date(jan4);
-    firstMondayOfYear.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
+    const firstMondayOfYear = getMonday(jan4);
     
     // Berechne den Montag der gewünschten Woche
     const targetMonday = new Date(firstMondayOfYear);
@@ -881,6 +919,26 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     }
   };
 
+  // Render der Abwesenheitszeile
+  const renderAbsenceRow = (day) => {
+    const dayAbsences = absences[day] || [];
+    
+    return (
+      <div className="absence-row">
+        {dayAbsences.map((absence) => (
+          <div
+            key={absence.id}
+            className={`absence-badge ${absence.type === 'vacation' ? 'vacation' : 'sick'}`}
+            onClick={() => handleShiftClick(absence, day, '07:00')}
+          >
+            {absence.type === 'vacation' ? '🏖️ ' : '🏥 '}
+            {absence.name}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Render
   return (
     <div className="card">
@@ -966,28 +1024,11 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
             </tr>
             <tr>
               <th className="schedule-header time-column">Abwesenheit</th>
-              {(selectedDay ? [selectedDay] : days).map((day) => {
-                const absences = scheduleData[selectedWeek]?.[day]?.['07:00']?.filter(
-                  shift => shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick')
-                ) || [];
-                
-                return (
-                  <th key={day} className={`schedule-header ${selectedDay ? 'full-width' : ''}`}>
-                    <div className="absence-row">
-                      {absences.map((absence, index) => (
-                        <div
-                          key={absence.id}
-                          className={`absence-badge ${absence.type === 'vacation' ? 'vacation' : 'sick'}`}
-                          onClick={() => handleShiftClick(absence, day, '07:00')}
-                        >
-                          {absence.type === 'vacation' ? '🏖️ ' : '🏥 '}
-                          {absence.name}
-                        </div>
-                      ))}
-                    </div>
-                  </th>
-                );
-              })}
+              {(selectedDay ? [selectedDay] : days).map((day) => (
+                <th key={day} className={`schedule-header ${selectedDay ? 'full-width' : ''}`}>
+                  {renderAbsenceRow(day)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
