@@ -1,4 +1,4 @@
-import { checkEmployeeAvailability, checkDuplicateShifts } from './shiftUtils';
+import { checkEmployeeAvailability, checkDuplicateShifts, getTimeInMinutes } from './shiftUtils';
 
 export const handleShiftSave = ({
   shiftData,
@@ -173,18 +173,82 @@ export const deleteShiftFromSchedule = (scheduleData, selectedWeek, day, shiftId
   return newData;
 };
 
-export function validateShiftAssignment(shift, employee, scheduleData) {
-  const date = new Date(shift.date);
+// Prüft ob ein Mitarbeiter an einem bestimmten Tag verfügbar ist
+const isEmployeeAvailable = (employee, date) => {
+  if (!employee || !employee.availability) return false;
+  
   const day = date.getDay();
-  // const time = shift.time;  // ungenutzt - entfernen
+  return employee.availability[day];
+};
 
+// Prüft auf Überschneidungen mit existierenden Schichten
+const checkShiftOverlap = (shift1, shift2) => {
+  const start1 = getTimeInMinutes(shift1.startTime);
+  const end1 = getTimeInMinutes(shift1.endTime);
+  const start2 = getTimeInMinutes(shift2.startTime);
+  const end2 = getTimeInMinutes(shift2.endTime);
+
+  return (start1 < end2 && end1 > start2);
+};
+
+// Validiert eine Schichtzuweisung
+export const validateShiftAssignment = (shift, employee, scheduleData) => {
+  const date = new Date(shift.date);
+  
   // Prüfe Verfügbarkeit
-  if (!employee.availability[day]) {
+  if (!isEmployeeAvailable(employee, date)) {
     return {
       isValid: false,
       message: 'Der Mitarbeiter ist an diesem Tag nicht verfügbar.'
     };
   }
 
-  // ... rest of the code ...
-} 
+  // Prüfe auf Überschneidungen
+  const existingShifts = scheduleData[shift.week]?.[shift.day] || {};
+  for (const timeSlot in existingShifts) {
+    const shifts = existingShifts[timeSlot];
+    for (const existingShift of shifts) {
+      if (existingShift.employeeId === employee.id) {
+        if (checkShiftOverlap(shift, existingShift)) {
+          return {
+            isValid: false,
+            message: 'Der Mitarbeiter hat bereits eine überlappende Schicht an diesem Tag.'
+          };
+        }
+      }
+    }
+  }
+
+  return { isValid: true };
+};
+
+// Organisiert überlappende Schichten
+export const organizeOverlappingShifts = (shifts) => {
+  if (!shifts || shifts.length === 0) return [];
+  
+  // Sortiere Schichten nach Startzeit
+  const sortedShifts = [...shifts].sort((a, b) => {
+    const startA = getTimeInMinutes(a.startTime);
+    const startB = getTimeInMinutes(b.startTime);
+    return startA - startB;
+  });
+
+  // Gruppiere überlappende Schichten
+  const groups = [];
+  let currentGroup = [sortedShifts[0]];
+
+  for (let i = 1; i < sortedShifts.length; i++) {
+    const currentShift = sortedShifts[i];
+    const lastShiftInGroup = currentGroup[currentGroup.length - 1];
+
+    if (checkShiftOverlap(lastShiftInGroup, currentShift)) {
+      currentGroup.push(currentShift);
+    } else {
+      groups.push([...currentGroup]);
+      currentGroup = [currentShift];
+    }
+  }
+  groups.push(currentGroup);
+
+  return groups;
+}; 

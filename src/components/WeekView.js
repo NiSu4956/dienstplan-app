@@ -3,14 +3,19 @@ import Modal from './common/Modal';
 import ShiftAssignmentForm from './shifts/ShiftAssignmentForm';
 import ShiftCard from './shifts/ShiftCard';
 import { 
-  organizeOverlappingShifts,
-  checkEmployeeAvailability,
+  calculateShiftPosition,
   checkDuplicateShifts,
+  checkEmployeeAvailability,
   getDateFromWeek,
   getCurrentWeek,
-  isCurrentDay
+  isCurrentDay,
+  organizeOverlappingShifts
 } from '../utils/shiftUtils';
-import { formatDate, DATE_FORMATS } from '../utils/dateUtils';
+import { 
+  formatDate, 
+  DATE_FORMATS,
+  getWeekKey 
+} from '../utils/dateUtils';
 import { DAYS_OF_WEEK, TIME_SLOTS } from '../constants/dateFormats';
 import { exportScheduleAsPDF } from '../utils/pdfExport';
 import { 
@@ -937,6 +942,19 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         ))}
       </div>
     );
+  };
+
+  // Ersetze die lokale getWeekString Funktion durch getWeekKey
+  const handleWeekChange = (direction) => {
+    const currentDate = new Date();
+    if (direction === 'next') {
+      currentDate.setDate(currentDate.getDate() + 7);
+    } else if (direction === 'prev') {
+      currentDate.setDate(currentDate.getDate() - 7);
+    }
+    
+    const newWeekString = getWeekKey(currentDate);
+    setSelectedWeek(newWeekString);
   };
 
   // Render

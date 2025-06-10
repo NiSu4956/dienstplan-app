@@ -4,10 +4,13 @@ import {
   DATE_FORMATS, 
   formatDate, 
   getDatesInRange,
-  getWeekString 
+  getWeekString,
+  normalizeDate,
+  getWeekKey,
+  normalizeDateForComparison
 } from './dateUtils';
 import { 
-  jsToISODay, 
+  jsToArrayIndex,
   getDayNameFromJS,
   isWorkday 
 } from './dayUtils';
@@ -47,7 +50,7 @@ const createCustomShift = (request, date, weekNumber) => ({
   name: request.employeeName,
   notes: request.notes,
   week: weekNumber,
-  day: getDayNameFromJS(date.getDay())
+  day: DAYS_OF_WEEK[jsToArrayIndex(date.getDay())]
 });
 
 export const createShiftFromRequest = (request) => {
@@ -110,7 +113,7 @@ const validateVacationConflicts = (request, scheduleData, startDate, endDate) =>
   
   for (const date of dates) {
     // Für Urlaub auch Sonntage prüfen
-    const weekKey = getWeekString(date);
+    const weekKey = getWeekKey(date);
     const dayKey = getDayNameFromJS(date.getDay());
     
     if (scheduleData[weekKey]?.[dayKey]) {
@@ -188,4 +191,61 @@ export const getDayDateFromWeekAndDay = (weekKey, dayKey) => {
   const date = new Date(year, startMonth - 1, startDay);
   date.setDate(date.getDate() + dayIndex);
   return date;
+};
+
+export const isDateInRequest = (date, request) => {
+  const normalizedDate = normalizeDateForComparison(date);
+  const normalizedStart = normalizeDateForComparison(request.startDate);
+  const normalizedEnd = normalizeDateForComparison(request.endDate);
+  
+  if (!normalizedDate || !normalizedStart || !normalizedEnd) {
+    console.log('DATE_DEBUG isDateInRequest - Ungültige Daten:', {
+      date,
+      requestStart: request.startDate,
+      requestEnd: request.endDate
+    });
+    return false;
+  }
+  
+  const result = normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd;
+  
+  console.log('DATE_DEBUG isDateInRequest:', {
+    checkDate: normalizedDate,
+    startDate: normalizedStart,
+    endDate: normalizedEnd,
+    isInRange: result,
+    weekDay: normalizedDate.getDay(),
+    weekDayName: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][normalizedDate.getDay()]
+  });
+  
+  return result;
+};
+
+export const getRequestsForWeek = (requests, weekString) => {
+  if (!requests || !weekString) {
+    console.log('DATE_DEBUG getRequestsForWeek - Keine Daten:', { requests, weekString });
+    return [];
+  }
+  
+  const filteredRequests = requests.filter(request => {
+    const requestWeek = getWeekKey(new Date(request.startDate));
+    const matches = requestWeek === weekString;
+    
+    console.log('DATE_DEBUG getRequestsForWeek - Prüfe Request:', {
+      requestStartDate: request.startDate,
+      requestWeek,
+      targetWeek: weekString,
+      matches
+    });
+    
+    return matches;
+  });
+  
+  console.log('DATE_DEBUG getRequestsForWeek - Ergebnis:', {
+    weekString,
+    totalRequests: requests.length,
+    filteredRequests: filteredRequests.length
+  });
+  
+  return filteredRequests;
 }; 

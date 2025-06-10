@@ -3,23 +3,23 @@
  * 
  * Standards used:
  * - JavaScript: Sunday=0 to Saturday=6
- * - ISO-8601: Monday=1 to Sunday=7
- * - Array Index: Monday=0 to Sunday=6 (used in DAYS_OF_WEEK array)
+ * - Our Standard: Monday=0 to Sunday=6 (used in DAYS_OF_WEEK array)
  */
 
 import { DAYS_OF_WEEK } from '../constants/dateFormats';
 
-// Konstanten für Wochentage
+// Konstanten für Wochentage (0-6 System)
 export const WEEKDAYS = {
-  MONDAY: 1,
-  TUESDAY: 2,
-  WEDNESDAY: 3,
-  THURSDAY: 4,
-  FRIDAY: 5,
-  SATURDAY: 6,
-  SUNDAY: 7
+  MONDAY: 0,
+  TUESDAY: 1,
+  WEDNESDAY: 2,
+  THURSDAY: 3,
+  FRIDAY: 4,
+  SATURDAY: 5,
+  SUNDAY: 6
 };
 
+// JavaScript's getDay() Konstanten zur Referenz
 export const JS_DAYS = {
   SUNDAY: 0,
   MONDAY: 1,
@@ -31,30 +31,16 @@ export const JS_DAYS = {
 };
 
 /**
- * Konvertiert JavaScript's getDay() (0=Sonntag) zu ISO Wochentag (1=Montag)
- */
-export const jsToISODay = (jsDay) => {
-  return jsDay === 0 ? 7 : jsDay;
-};
-
-/**
- * Konvertiert ISO Wochentag (1=Montag) zu JavaScript's getDay() (0=Sonntag)
- */
-export const isoToJSDay = (isoDay) => {
-  return isoDay === 7 ? 0 : isoDay;
-};
-
-/**
- * Konvertiert JavaScript's getDay() (0=Sonntag) zu Array-Index (0=Montag)
+ * Konvertiert JavaScript's getDay() (0=Sonntag) zu unserem Index (0=Montag)
  */
 export const jsToArrayIndex = (jsDay) => {
   return jsDay === 0 ? 6 : jsDay - 1;
 };
 
 /**
- * Konvertiert Array-Index (0=Montag) zu JavaScript's getDay() (0=Sonntag)
+ * Konvertiert unseren Index (0=Montag) zu JavaScript's getDay() (0=Sonntag)
  */
-export const arrayIndexToJS = (arrayIndex) => {
+export const arrayIndexToJSDay = (arrayIndex) => {
   return arrayIndex === 6 ? 0 : arrayIndex + 1;
 };
 
@@ -77,8 +63,8 @@ export const getDayIndexFromName = (dayName) => {
  * Prüft ob ein Datum ein Wochenende ist
  */
 export const isWeekend = (date) => {
-  const day = date.getDay();
-  return day === JS_DAYS.SATURDAY || day === JS_DAYS.SUNDAY;
+  const arrayIndex = jsToArrayIndex(date.getDay());
+  return arrayIndex === WEEKDAYS.SATURDAY || arrayIndex === WEEKDAYS.SUNDAY;
 };
 
 /**
@@ -89,6 +75,7 @@ export const getMonday = (date) => {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
   return d;
 };
 
@@ -96,23 +83,23 @@ export const getMonday = (date) => {
  * Gibt das Datum des Sonntags der aktuellen Woche zurück
  */
 export const getSunday = (date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() + (day === 0 ? 0 : 7 - day);
-  d.setDate(diff);
-  return d;
+  const monday = getMonday(date);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return sunday;
 };
 
 /**
- * Prüft ob ein Tag ein Arbeitstag ist (Mo-Sa)
+ * Prüft ob ein Tag ein Arbeitstag ist (Montag-Freitag)
  */
 export const isWorkday = (date) => {
-  return date.getDay() !== JS_DAYS.SUNDAY;
+  const arrayIndex = jsToArrayIndex(date.getDay());
+  return arrayIndex >= WEEKDAYS.MONDAY && arrayIndex <= WEEKDAYS.FRIDAY;
 };
 
 /**
- * Konvertiert ein Datum zu einem Wochentag-String
+ * Konvertiert JavaScript's getDay() (0=Sonntag) zu ISO Wochentag (1=Montag bis 7=Sonntag)
  */
-export const getWeekdayString = (date) => {
-  return getDayNameFromJS(date.getDay());
-}; 
+export const jsToISODay = (jsDay) => {
+  return jsDay === 0 ? 7 : jsDay;
+};

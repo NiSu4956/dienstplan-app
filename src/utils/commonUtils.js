@@ -1,3 +1,5 @@
+import { DAYS_OF_WEEK } from '../constants/dateFormats';
+
 // Cache für Datumsberechnungen
 const dateCache = new Map();
 
@@ -12,7 +14,7 @@ export const getDayDateFromWeek = (weekKey, day) => {
 
   const [startDay, startMonth] = weekMatch[1].split('.').map(Number);
   const year = parseInt(weekMatch[2]);
-  const dayIndex = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'].indexOf(day);
+  const dayIndex = DAYS_OF_WEEK.indexOf(day);
   
   if (dayIndex === -1) return new Date().toISOString();
   

@@ -1,10 +1,13 @@
-import { formatDate } from './dateUtils';
+import { formatDate, normalizeDateForComparison } from './dateUtils';
 import { 
   jsToISODay, 
   getDayNameFromJS, 
   getDayIndexFromName,
   getMonday
 } from './dayUtils';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { DAYS_OF_WEEK } from '../constants/dateFormats';
 
 // Cache für getTimeInMinutes
 const timeCache = new Map();
@@ -227,22 +230,28 @@ export const checkDuplicateShifts = (day, shiftTypeId, currentShiftId, scheduleD
 
 // Hilfsfunktion zum Extrahieren des Datums aus der Kalenderwoche
 export const getDateFromWeek = (weekString, dayIndex) => {
-  console.log('getDateFromWeek Input:', { weekString, dayIndex });
+  console.log('DATE_DEBUG getDateFromWeek Input:', { weekString, dayIndex });
   
   try {
     // Extrahiere das Startdatum aus dem weekString
     const dateMatch = weekString.match(/\((\d{2}\.\d{2})\s*-/);
     if (!dateMatch) {
-      console.error('Konnte Startdatum nicht aus weekString extrahieren:', weekString);
+      console.error('DATE_DEBUG Konnte Startdatum nicht aus weekString extrahieren:', weekString);
       return '';
     }
     
-    const [startDay, startMonth] = dateMatch[1].split('.');
+    const [startDay, startMonth] = dateMatch[1].split('.').map(Number);
     const year = weekString.match(/\.(\d{4})\)/)[1];
     
     // Erstelle das Datum für den ersten Tag der Woche (Montag)
     const mondayDate = new Date(parseInt(year), parseInt(startMonth) - 1, parseInt(startDay));
-    console.log('Montag der Woche:', mondayDate.toISOString());
+    mondayDate.setHours(0, 0, 0, 0);
+    
+    console.log('DATE_DEBUG Montag der Woche:', {
+      date: mondayDate,
+      day: mondayDate.getDay(),
+      dayName: DAYS_OF_WEEK[0] // Montag ist immer Index 0
+    });
     
     // Konvertiere dayIndex zu einer Zahl, falls es ein String ist
     let normalizedDayIndex = 0;
@@ -257,25 +266,34 @@ export const getDateFromWeek = (weekString, dayIndex) => {
     
     // Stelle sicher, dass der Index im gültigen Bereich liegt (0-6)
     normalizedDayIndex = Math.min(Math.max(normalizedDayIndex, 0), 6);
-    console.log('Normalisierter Tagesindex:', normalizedDayIndex);
+    
+    console.log('DATE_DEBUG Normalisierter Tagesindex:', {
+      original: dayIndex,
+      normalized: normalizedDayIndex
+    });
     
     // Berechne das Zieldatum
     const targetDate = new Date(mondayDate);
     targetDate.setDate(mondayDate.getDate() + normalizedDayIndex);
-    console.log('Berechnetes Datum:', targetDate.toISOString());
+    targetDate.setHours(0, 0, 0, 0);
+    
+    console.log('DATE_DEBUG Berechnetes Datum:', {
+      date: targetDate,
+      day: targetDate.getDay(),
+      dayName: DAYS_OF_WEEK[normalizedDayIndex]
+    });
     
     // Formatiere das Datum als DD.MM.YYYY
-    const formattedDate = new Intl.DateTimeFormat('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      timeZone: 'Europe/Berlin'
-    }).format(targetDate);
+    const formattedDate = format(targetDate, 'dd.MM.yyyy', { locale: de });
     
-    console.log('Formatiertes Datum:', formattedDate);
+    console.log('DATE_DEBUG Formatiertes Datum:', {
+      date: formattedDate,
+      originalDate: targetDate
+    });
+    
     return formattedDate;
   } catch (error) {
-    console.error('Fehler in getDateFromWeek:', error);
+    console.error('DATE_DEBUG Fehler in getDateFromWeek:', error);
     return '';
   }
 };
@@ -314,4 +332,33 @@ export const isCurrentDay = (dateString) => {
   return today.getDate() === day && 
          today.getMonth() + 1 === month && 
          today.getFullYear() === year;
+};
+
+export const createCustomShift = (request, employee, date) => {
+  const normalizedDate = normalizeDateForComparison(date);
+  if (!normalizedDate) {
+    console.error('DATE_DEBUG createCustomShift - Ungültiges Datum:', { date });
+    return null;
+  }
+  
+  const shift = {
+    type: 'custom',
+    customType: request.type,
+    customEmployeeIds: [employee.id],
+    customEmployeeNames: [employee.name],
+    date: formatDate(normalizedDate),
+    day: getDayNameFromJS(normalizedDate.getDay()),
+    approved: true,
+    requestId: request.id
+  };
+
+  console.log('DATE_DEBUG createCustomShift:', {
+    inputDate: date,
+    normalizedDate,
+    weekDay: normalizedDate.getDay(),
+    weekDayName: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][normalizedDate.getDay()],
+    shift
+  });
+  
+  return shift;
 }; 

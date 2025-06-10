@@ -11,6 +11,7 @@ import Navigation from './Navigation';
 import Dashboard from './Dashboard';
 import Settings from './settings/Settings';
 import { jsToArrayIndex, jsToISODay, getMonday, getDayNameFromJS } from '../utils/dayUtils';
+import { getWeekKey, formatDate, parseAnyDate } from '../utils/dateUtils';
 
 // Memoized initial data
 const INITIAL_SCHEDULE_DATA = {};
@@ -244,39 +245,86 @@ function AppRouter() {
   }, [getWeekNumber]);
 
   const handleApproveRequest = useCallback((request) => {
+    console.log('URLAUB_DEBUG [handleApproveRequest] Start:', {
+      antrag: request,
+      mitarbeiter: request.employeeName
+    });
+
     updateRequestStatus(request, 'approved');
 
-    const startDate = new Date(request.startDate);
-    const endDate = new Date(request.endDate);
-    const employee = employees.find(e => e.name === request.employeeName);
+    try {
+      const startDate = parseAnyDate(request.startDate);
+      const endDate = parseAnyDate(request.endDate);
+      
+      if (!startDate || !endDate) {
+        console.error('URLAUB_DEBUG [handleApproveRequest] Ungültige Daten:', {
+          startDate: request.startDate,
+          endDate: request.endDate
+        });
+        return;
+      }
+      
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      
+      const employee = employees.find(e => e.name === request.employeeName);
 
-    if (!employee) return;
+      if (!employee) {
+        console.error('URLAUB_DEBUG [handleApproveRequest] Mitarbeiter nicht gefunden:', {
+          name: request.employeeName
+        });
+        return;
+      }
 
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const weekKey = getWeekKey(currentDate);
-      const dayName = getDayName(currentDate);
-      const newShift = createCustomShift(request, employee);
-
-      setScheduleData(prev => {
-        const newData = { ...prev };
-        if (!newData[weekKey]) newData[weekKey] = {};
-        if (!newData[weekKey][dayName]) newData[weekKey][dayName] = {};
-        if (!newData[weekKey][dayName][DEFAULT_TIME_SLOT]) newData[weekKey][dayName][DEFAULT_TIME_SLOT] = [];
-        
-        const existingEntryIndex = newData[weekKey][dayName][DEFAULT_TIME_SLOT]
-          .findIndex(entry => entry.customEmployeeIds?.includes(employee.id));
-        
-        if (existingEntryIndex >= 0) {
-          newData[weekKey][dayName][DEFAULT_TIME_SLOT][existingEntryIndex] = newShift;
-        } else {
-          newData[weekKey][dayName][DEFAULT_TIME_SLOT].push(newShift);
-        }
-        
-        return newData;
+      console.log('URLAUB_DEBUG [handleApproveRequest] Zeitraum:', {
+        von: formatDate(startDate),
+        bis: formatDate(endDate),
+        vonTag: getDayNameFromJS(startDate.getDay()),
+        bisTag: getDayNameFromJS(endDate.getDay())
       });
 
-      currentDate.setDate(currentDate.getDate() + 1);
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const weekKey = getWeekKey(currentDate);
+        const dayName = getDayNameFromJS(currentDate.getDay());
+        const newShift = createCustomShift(request, employee, currentDate);
+
+        console.log('URLAUB_DEBUG [handleApproveRequest] Erstelle Eintrag:', {
+          datum: formatDate(currentDate),
+          wochentag: dayName,
+          woche: weekKey,
+          schicht: newShift
+        });
+
+        setScheduleData(prev => {
+          const newData = { ...prev };
+          if (!newData[weekKey]) newData[weekKey] = {};
+          if (!newData[weekKey][dayName]) newData[weekKey][dayName] = {};
+          if (!newData[weekKey][dayName][DEFAULT_TIME_SLOT]) newData[weekKey][dayName][DEFAULT_TIME_SLOT] = [];
+          
+          const existingEntryIndex = newData[weekKey][dayName][DEFAULT_TIME_SLOT]
+            .findIndex(entry => entry.customEmployeeIds?.includes(employee.id));
+          
+          if (existingEntryIndex >= 0) {
+            console.log('URLAUB_DEBUG [handleApproveRequest] Überschreibe existierenden Eintrag:', {
+              datum: formatDate(currentDate),
+              wochentag: dayName,
+              alterEintrag: newData[weekKey][dayName][DEFAULT_TIME_SLOT][existingEntryIndex]
+            });
+            newData[weekKey][dayName][DEFAULT_TIME_SLOT][existingEntryIndex] = newShift;
+          } else {
+            newData[weekKey][dayName][DEFAULT_TIME_SLOT].push(newShift);
+          }
+          
+          return newData;
+        });
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      console.log('URLAUB_DEBUG [handleApproveRequest] Antrag erfolgreich genehmigt');
+    } catch (error) {
+      console.error('URLAUB_DEBUG [handleApproveRequest] Fehler:', error);
     }
   }, [employees, createCustomShift, updateRequestStatus, getWeekKey, getDayName]);
 
