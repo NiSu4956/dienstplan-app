@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, Link, useLocation } from 'react-router-dom';
 import WeekView from './WeekView';
 import EmployeePortal from './EmployeePortal';
@@ -6,12 +6,11 @@ import AdminArea from './AdminArea';
 import Login from './Login';
 import ProtectedRoute from './ProtectedRoute';
 import { validateRequest } from '../utils/requestHandler';
-import { STORAGE_KEYS, ROLES, REQUEST_TYPES, DEFAULT_TIME_SLOT, DAYS_OF_WEEK } from '../constants';
-import Navigation from './Navigation';
+import { STORAGE_KEYS, ROLES, REQUEST_TYPES, DEFAULT_TIME_SLOT } from '../constants';
 import Dashboard from './Dashboard';
 import Settings from './settings/Settings';
-import { jsToArrayIndex, jsToISODay, getMonday, getDayNameFromJS } from '../utils/dayUtils';
-import { getWeekKey, formatDate, parseAnyDate } from '../utils/dateUtils';
+import { getMonday, getDayNameFromJS } from '../utils/dayUtils';
+import { formatDate, parseAnyDate } from '../utils/dateUtils';
 
 // Memoized initial data
 const INITIAL_SCHEDULE_DATA = {};
@@ -202,6 +201,10 @@ function AppRouter() {
   const getDayName = useCallback((date) => {
     return getDayNameFromJS(date.getDay());
   }, []);
+
+  const jsToISODay = (day) => {
+    return day === 0 ? 7 : day;
+  };
 
   const getWeekNumber = useCallback((date) => {
     const dateString = date.toISOString();

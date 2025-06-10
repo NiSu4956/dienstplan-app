@@ -10,6 +10,10 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .portal-actions {
@@ -17,175 +21,74 @@
   gap: 12px;
 }
 
-/* Notification Styles */
-.notifications-section,
-.pending-requests-section {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.notification-list,
-.request-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.notification-card,
-.request-card {
-  border: 1px solid #e5e7eb;
+/* Button Styles */
+.button {
+  padding: 8px 16px;
   border-radius: 6px;
-  padding: 16px;
-  background: #f9fafb;
-}
-
-.notification-header,
-.request-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.notification-date,
-.request-date {
-  color: #6b7280;
-  font-size: 0.875rem;
-}
-
-.notification-content,
-.request-content {
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.admin-comment {
-  margin-top: 12px;
-  padding: 8px;
-  background: #f3f4f6;
-  border-radius: 4px;
-  font-style: italic;
-}
-
-/* Status Badges */
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
   font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: #3B82F6;
+  color: white;
 }
 
-.badge-yellow {
-  background: #fef3c7;
-  color: #92400e;
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.badge-green {
-  background: #d1fae5;
-  color: #065f46;
+.button:active {
+  transform: translateY(0);
 }
 
-.badge-red {
-  background: #fee2e2;
-  color: #991b1b;
+.button.secondary {
+  background: #E5E7EB;
+  color: #374151;
 }
 
-/* Admin Notifications */
-.admin-notifications {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+.button.secondary:hover {
+  background: #D1D5DB;
 }
 
-.admin-response {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+.button.primary {
+  background: #3B82F6;
+  color: white;
 }
 
-.button-group {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
+.button.primary:hover {
+  background: #2563EB;
 }
 
-.employee-info {
-  margin-bottom: 8px;
+.button.approve {
+  background: #10B981;
+  color: white;
 }
 
-.date-range {
-  color: #4b5563;
-  margin-bottom: 8px;
+.button.approve:hover {
+  background: #059669;
 }
 
-.request-notes {
-  margin-top: 8px;
-  padding: 8px;
-  background: #f3f4f6;
-  border-radius: 4px;
+.button.reject {
+  background: #EF4444;
+  color: white;
 }
 
-.processed-info {
-  margin-top: 12px;
-  font-size: 0.75rem;
-  color: #6b7280;
+.button.reject:hover {
+  background: #DC2626;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 48px;
-  background: white;
-  border-radius: 8px;
-  color: #6b7280;
+.button.delete {
+  background: #EF4444;
+  color: white;
 }
 
-/* Request Form */
-.request-form {
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.button.delete:hover {
+  background: #DC2626;
 }
 
-/* Responsive Design */
-@media (max-width: 640px) {
-  .portal-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .portal-actions {
-    width: 100%;
-  }
-
-  .portal-actions .button {
-    flex: 1;
-  }
-
-  .button-group {
-    flex-direction: column;
-  }
-}
-
-.request-form-container {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
-}
-
-.request-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
+/* Form Styles */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -197,34 +100,21 @@
   color: #374151;
 }
 
-.select,
-.input,
-.textarea {
+.form-control {
   padding: 8px 12px;
   border: 1px solid #D1D5DB;
   border-radius: 6px;
   font-size: 14px;
+  width: 100%;
 }
 
-.textarea {
-  min-height: 100px;
-  resize: vertical;
+.form-control:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-.requests-history {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.requests-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
-}
-
+/* Request Card Styles */
 .request-card {
   border: 1px solid #E5E7EB;
   border-radius: 6px;
@@ -251,11 +141,27 @@
   font-weight: 500;
 }
 
+.request-dates {
+  font-size: 14px;
+  color: #6B7280;
+  margin-bottom: 8px;
+}
+
+.request-notes {
+  margin-top: 8px;
+  padding: 8px;
+  background: #F3F4F6;
+  border-radius: 4px;
+}
+
+/* Status Badges */
 .status-badge {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
 .status-badge.pending {
@@ -273,32 +179,132 @@
   color: #991B1B;
 }
 
-.request-dates {
-  font-size: 14px;
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  background: white;
+  border-radius: 8px;
   color: #6B7280;
+  border: 2px dashed #E5E7EB;
+  margin: 24px 0;
+}
+
+.empty-state::before {
+  content: "📋";
+  font-size: 32px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+/* DatePicker Customization */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .portal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .portal-actions {
+    width: 100%;
+  }
+
+  .portal-actions .button {
+    flex: 1;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.employee-info {
   margin-bottom: 8px;
 }
 
-.request-note {
-  font-size: 14px;
-  color: #4B5563;
+.date-range {
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+
+.processed-info {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.notification-list,
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.notification-card,
+.request-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+  background: #f9fafb;
+}
+
+.notification-header,
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.request-date {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.notification-content,
+.request-content {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.admin-comment {
+  margin-top: 12px;
   padding: 8px;
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-radius: 4px;
+  font-style: italic;
 }
 
-/* Admin Notifications Styles */
-.pending-requests {
-  background: white;
+.admin-notifications {
+  max-width: 800px;
+  margin: 0 auto;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.no-requests {
-  text-align: center;
-  color: #6B7280;
-  padding: 20px;
+.admin-response {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .request-details {
@@ -316,45 +322,18 @@
   margin-top: 16px;
 }
 
-.button {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.button.approve {
-  background: #10B981;
-  color: white;
-}
-
-.button.approve:hover {
-  background: #059669;
-}
-
-.button.reject {
-  background: #EF4444;
-  color: white;
-}
-
-.button.reject:hover {
-  background: #DC2626;
-}
-
-/* DatePicker Customization */
-.react-datepicker-wrapper {
-  width: 100%;
-}
-
-.react-datepicker__input-container input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #D1D5DB;
-  border-radius: 6px;
+.request-note {
   font-size: 14px;
+  color: #4B5563;
+  padding: 8px;
+  background: #F3F4F6;
+  border-radius: 4px;
+}
+
+.no-requests {
+  text-align: center;
+  color: #6B7280;
+  padding: 20px;
 }
 
 .documentation-form {
@@ -402,4 +381,159 @@
   margin-top: 2rem;
   border-top: 1px solid #e5e7eb;
   padding-top: 1.5rem;
+}
+
+.request-status {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.request-status.pending {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.request-status.approved {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.request-status.rejected {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 500px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.modal-content {
+  margin-bottom: 1.5rem;
+}
+
+/* Request Form Styles */
+.request-form {
+  width: 100%;
+}
+
+.request-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.request-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.request-form .form-control {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.request-form .form-control:focus {
+  border-color: #4a90e2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.request-form textarea.form-control {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.request-form .error-message {
+  background-color: #fff2f2;
+  border: 1px solid #ffcdd2;
+  color: #d32f2f;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.request-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* DatePicker Styles */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker {
+  font-family: inherit;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.react-datepicker__header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  padding: 1rem;
+}
+
+.react-datepicker__day--selected {
+  background-color: #4a90e2 !important;
+  border-radius: 4px;
+}
+
+.react-datepicker__day:hover {
+  background-color: #e9ecef;
+  border-radius: 4px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .modal {
+    min-width: 95vw;
+    padding: 1.5rem;
+  }
+
+  .request-form .form-actions {
+    flex-direction: column;
+  }
+
+  .request-form .form-actions button {
+    width: 100%;
+  }
 } 
