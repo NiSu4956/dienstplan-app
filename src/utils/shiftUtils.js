@@ -233,15 +233,16 @@ export const getDateFromWeek = (weekString, dayIndex) => {
   console.log('DATE_DEBUG getDateFromWeek Input:', { weekString, dayIndex });
   
   try {
-    // Extrahiere das Startdatum aus dem weekString
-    const dateMatch = weekString.match(/\((\d{2}\.\d{2})\s*-/);
+    // Extrahiere das Startdatum und Jahr aus dem weekString
+    const dateMatch = weekString.match(/\((\d{2}\.\d{2})\.?(\d{4})?\s*-\s*\d{2}\.\d{2}\.(\d{4})\)/);
     if (!dateMatch) {
       console.error('DATE_DEBUG Konnte Startdatum nicht aus weekString extrahieren:', weekString);
       return '';
     }
     
-    const [startDay, startMonth] = dateMatch[1].split('.').map(Number);
-    const year = weekString.match(/\.(\d{4})\)/)[1];
+    const [_, startDate, startYear, endYear] = dateMatch;
+    const [startDay, startMonth] = startDate.split('.').map(Number);
+    const year = startYear || endYear;
     
     // Erstelle das Datum für den ersten Tag der Woche (Montag)
     const mondayDate = new Date(parseInt(year), parseInt(startMonth) - 1, parseInt(startDay));
