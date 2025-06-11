@@ -624,7 +624,7 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
     for (const day of days) {
       if (scheduleData[selectedWeek][day]) {
         // Alle Zeitslots durchsuchen für Abwesenheiten
-        result[day] = Object.values(scheduleData[selectedWeek][day])
+        let dayAbsences = Object.values(scheduleData[selectedWeek][day])
           .flat()
           .filter((shift, index, self) => 
             shift?.isCustom && 
@@ -632,12 +632,21 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
             // Entferne Duplikate basierend auf der ID
             index === self.findIndex(s => s.id === shift.id)
           ) || [];
+
+        // Filtere nach ausgewähltem Mitarbeiter
+        if (selectedEmployee) {
+          dayAbsences = dayAbsences.filter(absence => 
+            absence.customEmployeeIds?.includes(parseInt(selectedEmployee))
+          );
+        }
+
+        result[day] = dayAbsences;
       } else {
         result[day] = [];
       }
     }
     return result;
-  }, [scheduleData, selectedWeek, days]);
+  }, [scheduleData, selectedWeek, days, selectedEmployee]);
 
   // Memoize the current date check to avoid unnecessary re-renders
   const getCurrentDateString = useMemo(() => {

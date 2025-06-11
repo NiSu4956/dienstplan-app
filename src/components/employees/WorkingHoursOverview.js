@@ -24,15 +24,20 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
   }, [selectedMonth, selectedYear, employee, scheduleData]);
 
   const calculateMonthlyHours = () => {
+    console.log('Calculating monthly hours for:', selectedMonth, selectedYear);
     let totalMinutes = 0;
     const shiftsArray = [];
     const weeklyHoursArray = [];
     let currentWeekHours = 0;
     let currentWeekNumber = -1;
 
+    // Bestimme die Soll-Wochenarbeitsstunden
     const targetWeeklyHours = employee.workingHours || (employee.role === 'Vollzeit' ? 40 : 0);
 
     Object.entries(scheduleData).forEach(([week, weekData]) => {
+      console.log('Processing week data:', week, weekData);
+      
+      // Extrahiere die Kalenderwoche aus dem String
       const weekMatch = week.match(/KW (\d+)/);
       const weekNumber = weekMatch ? parseInt(weekMatch[1]) : -1;
       
@@ -51,21 +56,47 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
         if (dayIndex === -1) return;
 
         const weekStartDate = parseWeekString(week);
-        if (!weekStartDate) return;
+        if (!weekStartDate) {
+          console.error('Could not parse week string:', week);
+          return;
+        }
 
+        // Berechne das Datum für den aktuellen Tag
         const currentDate = new Date(weekStartDate);
         currentDate.setDate(weekStartDate.getDate() + dayIndex);
+        console.log('Processing date:', {
+          day,
+          date: currentDate.toISOString(),
+          month: currentDate.getMonth(),
+          selectedMonth,
+          year: currentDate.getFullYear(),
+          selectedYear
+        });
 
         Object.entries(dayData).forEach(([timeSlot, shifts]) => {
           shifts.forEach(shift => {
             if (isEmployeeShift(shift, employee.id)) {
+              console.log('Found shift for employee:', {
+                shift,
+                date: currentDate.toISOString(),
+                timeSlot
+              });
+              
               const shiftDuration = calculateShiftDuration(shift, shiftTypes);
               
+              // Prüfe, ob der Monat und das Jahr übereinstimmen
               if (currentDate.getMonth() === selectedMonth && currentDate.getFullYear() === selectedYear) {
                 totalMinutes += shiftDuration;
                 currentWeekHours += shiftDuration / 60;
 
                 shiftsArray.push({
+                  date: formatDate(currentDate),
+                  timeSlot: getShiftTimeRange(shift, shiftTypes),
+                  duration: shiftDuration,
+                  type: getShiftType(shift, shiftTypes)
+                });
+                
+                console.log('Added shift to array:', {
                   date: formatDate(currentDate),
                   timeSlot: getShiftTimeRange(shift, shiftTypes),
                   duration: shiftDuration,
@@ -78,6 +109,7 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
       });
     });
 
+    // Füge die letzte Woche hinzu
     if (currentWeekNumber !== -1) {
       weeklyHoursArray.push({
         weekNumber: currentWeekNumber,
@@ -88,12 +120,14 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
 
     setMonthlyHours(totalMinutes / 60);
 
+    // Sortiere die Schichten nach Datum (neueste zuerst)
     const sortedShifts = shiftsArray.sort((a, b) => {
       const dateA = parseGermanDate(a.date);
       const dateB = parseGermanDate(b.date);
       return dateB - dateA;
     });
 
+    console.log('Final sorted shifts:', sortedShifts);
     setDetailedShifts(sortedShifts);
     setWeeklyHours(weeklyHoursArray);
   };
@@ -103,30 +137,65 @@ function WorkingHoursOverview({ employee, scheduleData, shiftTypes, onClose }) {
   };
 
   const parseWeekString = (weekString) => {
+    console.log('Parsing week string:', weekString);
+    
+    // Extrahiere das Startdatum aus dem weekString (z.B. "KW 23 (02.06 - 08.06.2025)")
     const dateMatch = weekString.match(/\((\d{2})\.(\d{2})\s*-\s*\d{2}\.\d{2}\.(\d{4})\)/);
-    if (!dateMatch) return null;
+    if (!dateMatch) {
+      console.error('Konnte Datum nicht aus weekString extrahieren:', weekString);
+      return null;
+    }
     
     const [, day, month, year] = dateMatch;
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+    console.log('Parsed date components:', { day, month, year });
+    
+    // Erstelle das Datum mit 12:00 Uhr mittags
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+    console.log('Created date object:', date.toISOString());
+    return date;
   };
 
   const isEmployeeShift = (shift, employeeId) => {
     if (!shift) return false;
-    return shift.isCustom 
+    const isMatch = shift.isCustom 
       ? shift.customEmployeeIds?.includes(parseInt(employeeId))
       : parseInt(shift.employeeId) === parseInt(employeeId);
+    
+    console.log('Prüfe Mitarbeiter-Match:', {
+      shift,
+      employeeId,
+      isCustom: shift.isCustom,
+      customEmployeeIds: shift.customEmployeeIds,
+      shiftEmployeeId: shift.employeeId,
+      isMatch
+    });
+    
+    return isMatch;
   };
 
   const calculateShiftDuration = (shift, shiftTypes) => {
     if (shift.isCustom) {
       if (!shift.customStartTime || !shift.customEndTime) return 0;
-      return calculateTimeDifference(shift.customStartTime, shift.customEndTime);
+      const duration = calculateTimeDifference(shift.customStartTime, shift.customEndTime);
+      console.log('Berechne Dauer für Custom-Schicht:', {
+        start: shift.customStartTime,
+        end: shift.customEndTime,
+        duration
+      });
+      return duration;
     }
 
     const shiftType = shiftTypes.find(t => t.id === shift.shiftTypeId);
     if (!shiftType || !shiftType.startTime || !shiftType.endTime) return 0;
     
-    return calculateTimeDifference(shiftType.startTime, shiftType.endTime);
+    const duration = calculateTimeDifference(shiftType.startTime, shiftType.endTime);
+    console.log('Berechne Dauer für Standard-Schicht:', {
+      shiftType,
+      start: shiftType.startTime,
+      end: shiftType.endTime,
+      duration
+    });
+    return duration;
   };
 
   const getShiftTimeRange = (shift, shiftTypes) => {

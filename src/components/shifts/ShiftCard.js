@@ -9,11 +9,17 @@ const ShiftCard = memo(({
   isEditable, 
   onShiftClick, 
   style,
-  currentUser 
+  currentUser,
+  selectedEmployee
 }) => {
   const isCustom = shift.isCustom;
   const isAbsence = isCustom && (shift.type === 'vacation' || shift.type === 'sick');
   const isCurrentUserShift = isUserShift(shift, currentUser);
+  
+  // Wenn ein Mitarbeiter ausgewählt ist und dieser nicht in der Schicht ist, zeige die Karte nicht an
+  if (selectedEmployee && !shift.customEmployeeIds?.includes(parseInt(selectedEmployee))) {
+    return null;
+  }
   
   const cardClassName = `shift-card ${
     isCustom ? `custom-entry shift-${shift.type}` : `shift-${shiftType?.color || 'gray'}`
