@@ -2,6 +2,7 @@
   "name": "dienstplan-app",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@headlessui/react": "^1.7.18",
     "@testing-library/dom": "^9.3.4",

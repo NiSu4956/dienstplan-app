@@ -12,7 +12,15 @@ describe('Security Check Tests', () => {
             login: () => {},
             save: () => {},
             handleApproveRequest: () => {},
-            handleRejectRequest: () => {}
+            handleRejectRequest: () => {},
+            // React specific functions
+            React: {
+                createElement: () => {},
+                useState: () => [null, () => {}],
+                useEffect: () => {},
+                useCallback: (fn) => fn,
+                useMemo: (fn) => fn()
+            }
         };
     });
 
@@ -40,5 +48,11 @@ describe('Security Check Tests', () => {
             expect(result).toHaveProperty('name');
             expect(result).toHaveProperty('exists');
         });
+    });
+
+    test('React specific functions are checked', () => {
+        expect(checkFunction('React.createElement')).toBe(true);
+        expect(checkFunction('React.useState')).toBe(true);
+        expect(checkFunction('React.useEffect')).toBe(true);
     });
 }); 

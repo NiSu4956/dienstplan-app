@@ -45,13 +45,13 @@ function runSecurityCheck() {
     return results;
 }
 
-// Automatische Ausführung beim Laden
-if (typeof window !== 'undefined') {
+// Export für manuelle Tests
+export { runSecurityCheck, checkFunction };
+
+// Automatische Ausführung nur im Browser
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     window.addEventListener('load', () => {
         console.log('🛡️ Running security check on page load...');
         runSecurityCheck();
     });
-}
-
-// Export für manuelle Tests
-export { runSecurityCheck, checkFunction }; 
+} 
