@@ -230,71 +230,20 @@ export const checkDuplicateShifts = (day, shiftTypeId, currentShiftId, scheduleD
 
 // Hilfsfunktion zum Extrahieren des Datums aus der Kalenderwoche
 export const getDateFromWeek = (weekString, dayIndex) => {
-  console.log('DATE_DEBUG getDateFromWeek Input:', { weekString, dayIndex });
-  
   try {
-    // Extrahiere das Startdatum aus dem weekString
-    const dateMatch = weekString.match(/\((\d{2}\.\d{2})\s*-/);
-    if (!dateMatch) {
-      console.error('DATE_DEBUG Konnte Startdatum nicht aus weekString extrahieren:', weekString);
-      return '';
-    }
+    const dateMatch = weekString.match(/\((\d{2})\.(\d{2})\s*-\s*\d{2}\.\d{2}\.(\d{4})\)/);
+    if (!dateMatch) return null;
     
-    const [startDay, startMonth] = dateMatch[1].split('.').map(Number);
-    const year = weekString.match(/\.(\d{4})\)/)[1];
+    const [, day, month, year] = dateMatch;
+    const monday = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
     
-    // Erstelle das Datum für den ersten Tag der Woche (Montag)
-    const mondayDate = new Date(parseInt(year), parseInt(startMonth) - 1, parseInt(startDay));
-    mondayDate.setHours(0, 0, 0, 0);
+    const normalizedDayIndex = dayIndex % 7;
+    const targetDate = new Date(monday);
+    targetDate.setDate(monday.getDate() + normalizedDayIndex);
     
-    console.log('DATE_DEBUG Montag der Woche:', {
-      date: mondayDate,
-      day: mondayDate.getDay(),
-      dayName: DAYS_OF_WEEK[0] // Montag ist immer Index 0
-    });
-    
-    // Konvertiere dayIndex zu einer Zahl, falls es ein String ist
-    let normalizedDayIndex = 0;
-    if (typeof dayIndex === 'number') {
-      normalizedDayIndex = dayIndex;
-    } else if (typeof dayIndex === 'string') {
-      normalizedDayIndex = getDayIndexFromName(dayIndex);
-      if (normalizedDayIndex === -1) {
-        normalizedDayIndex = parseInt(dayIndex) || 0;
-      }
-    }
-    
-    // Stelle sicher, dass der Index im gültigen Bereich liegt (0-6)
-    normalizedDayIndex = Math.min(Math.max(normalizedDayIndex, 0), 6);
-    
-    console.log('DATE_DEBUG Normalisierter Tagesindex:', {
-      original: dayIndex,
-      normalized: normalizedDayIndex
-    });
-    
-    // Berechne das Zieldatum
-    const targetDate = new Date(mondayDate);
-    targetDate.setDate(mondayDate.getDate() + normalizedDayIndex);
-    targetDate.setHours(0, 0, 0, 0);
-    
-    console.log('DATE_DEBUG Berechnetes Datum:', {
-      date: targetDate,
-      day: targetDate.getDay(),
-      dayName: DAYS_OF_WEEK[normalizedDayIndex]
-    });
-    
-    // Formatiere das Datum als DD.MM.YYYY
-    const formattedDate = format(targetDate, 'dd.MM.yyyy', { locale: de });
-    
-    console.log('DATE_DEBUG Formatiertes Datum:', {
-      date: formattedDate,
-      originalDate: targetDate
-    });
-    
-    return formattedDate;
+    return formatDate(targetDate);
   } catch (error) {
-    console.error('DATE_DEBUG Fehler in getDateFromWeek:', error);
-    return '';
+    return null;
   }
 };
 
@@ -334,31 +283,16 @@ export const isCurrentDay = (dateString) => {
          today.getFullYear() === year;
 };
 
-export const createCustomShift = (request, employee, date) => {
-  const normalizedDate = normalizeDateForComparison(date);
-  if (!normalizedDate) {
-    console.error('DATE_DEBUG createCustomShift - Ungültiges Datum:', { date });
-    return null;
-  }
+export const createCustomShift = (date, startTime, endTime, employeeIds, title, type) => {
+  if (!date || !startTime || !endTime || !employeeIds) return null;
   
-  const shift = {
-    type: 'custom',
-    customType: request.type,
-    customEmployeeIds: [employee.id],
-    customEmployeeNames: [employee.name],
-    date: formatDate(normalizedDate),
-    day: getDayNameFromJS(normalizedDate.getDay()),
-    approved: true,
-    requestId: request.id
+  return {
+    id: Date.now(),
+    isCustom: true,
+    customStartTime: startTime,
+    customEndTime: endTime,
+    customEmployeeIds: employeeIds,
+    customTitle: title,
+    type: type || 'custom'
   };
-
-  console.log('DATE_DEBUG createCustomShift:', {
-    inputDate: date,
-    normalizedDate,
-    weekDay: normalizedDate.getDay(),
-    weekDayName: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][normalizedDate.getDay()],
-    shift
-  });
-  
-  return shift;
 }; 
