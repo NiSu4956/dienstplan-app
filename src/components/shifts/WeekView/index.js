@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import WeekHeader from './WeekHeader';
 import WeekGrid from './WeekGrid';
 import DocumentationModal from './DocumentationModal';
@@ -31,6 +31,7 @@ function WeekView({
   const [selectedShiftData, setSelectedShiftData] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
 
   const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
@@ -62,15 +63,29 @@ function WeekView({
     }
   };
 
-  const handleShiftClick = (shift, day, time) => {
+  // Memoize handlers
+  const handleShiftClick = useCallback((shift, day, time) => {
+    setSelectedShiftId(shift.id);
     setSelectedShiftData({ shift, day, time });
     setIsShiftModalOpen(true);
-  };
+  }, []);
 
-  const handleAddClick = (day, time) => {
-    setSelectedShiftData({ day, time });
+  const handleAddClick = useCallback((day, time) => {
+    setSelectedDay(day);
+    setSelectedTime(time);
     setIsShiftModalOpen(true);
-  };
+  }, []);
+
+  const handleCloseShiftModal = useCallback(() => {
+    setIsShiftModalOpen(false);
+    setSelectedShiftId(null);
+    setSelectedShiftData(null);
+  }, []);
+
+  const handleCloseDocumentationModal = useCallback(() => {
+    setIsDocumentationModalOpen(false);
+    setSelectedShiftData(null);
+  }, []);
 
   const handleSaveShift = async (shiftData) => {
     const result = await handleShiftSaveUtil(shiftData, scheduleData, selectedWeek);
@@ -141,6 +156,37 @@ function WeekView({
       setScheduleData(result.newScheduleData);
     }
   };
+
+  // Memoize complex calculations
+  const organizedShifts = useMemo(() => {
+    if (!scheduleData[selectedWeek]) return {};
+    
+    const result = {};
+    for (const day of days) {
+      if (scheduleData[selectedWeek][day]) {
+        const dayShifts = Object.values(scheduleData[selectedWeek][day])
+          .flat()
+          .filter((shift, index, self) => {
+            const isFirstOccurrence = index === self.findIndex(s => s.id === shift.id);
+            const isNotAbsence = !(shift.isCustom && (shift.type === 'vacation' || shift.type === 'sick'));
+            return isFirstOccurrence && isNotAbsence;
+          });
+          
+        if (selectedEmployee) {
+          const filteredShifts = dayShifts.filter(shift => {
+            if (shift.isCustom) {
+              return shift.customEmployeeIds?.includes(parseInt(selectedEmployee));
+            }
+            return shift.employeeId === parseInt(selectedEmployee);
+          });
+          result[day] = organizeOverlappingShifts(filteredShifts, shiftTypes, timeSlots);
+        } else {
+          result[day] = organizeOverlappingShifts(dayShifts, shiftTypes, timeSlots);
+        }
+      }
+    }
+    return result;
+  }, [scheduleData, selectedWeek, selectedEmployee, days, shiftTypes, timeSlots]);
 
   // Abwesenheiten separat verarbeiten
   const absences = useMemo(() => {
@@ -251,35 +297,44 @@ function WeekView({
       </div>
 
       {isShiftModalOpen && (
-        <ShiftAssignmentForm
+        <Modal
           isOpen={isShiftModalOpen}
-          onClose={() => setIsShiftModalOpen(false)}
-          shiftData={selectedShiftData?.shift}
-          day={selectedShiftData?.day}
-          time={selectedShiftData?.time}
-          employees={employees}
-          shiftTypes={shiftTypes}
-          onSave={handleSaveShift}
-          onDelete={() => handleDeleteShift(
-            selectedShiftData.day,
-            selectedShiftData.time,
-            selectedShiftData.shift.id
-          )}
-        />
+          onClose={handleCloseShiftModal}
+          title={selectedShiftId ? "Schicht bearbeiten" : "Neue Schicht"}
+        >
+          <ShiftAssignmentForm
+            shift={selectedShiftData?.shift}
+            day={selectedShiftData?.day || selectedDay}
+            time={selectedShiftData?.time || selectedTime}
+            employees={employees}
+            shiftTypes={shiftTypes}
+            onSave={handleSaveShift}
+            onCancel={handleCloseShiftModal}
+            onDelete={selectedShiftId ? handleDeleteShift : undefined}
+          />
+        </Modal>
       )}
 
-      <DocumentationModal
-        isOpen={isDocumentationModalOpen}
-        onClose={() => setIsDocumentationModalOpen(false)}
-        selectedShift={selectedShiftData?.shift}
-        onSave={handleSaveDocumentation}
-        onUpdate={handleUpdateDocumentation}
-        onDelete={handleDeleteDocumentation}
-      />
+      {isDocumentationModalOpen && selectedShiftData && (
+        <Modal
+          isOpen={isDocumentationModalOpen}
+          onClose={handleCloseDocumentationModal}
+          title="Dokumentation"
+        >
+          <DocumentationModal
+            shift={selectedShiftData.shift}
+            day={selectedShiftData.day}
+            onSave={handleSaveDocumentation}
+            onUpdate={handleUpdateDocumentation}
+            onDelete={handleDeleteDocumentation}
+            onClose={handleCloseDocumentationModal}
+          />
+        </Modal>
+      )}
 
       {children}
     </div>
   );
 }
 
-export default WeekView; 
+export default memo(WeekView); 
