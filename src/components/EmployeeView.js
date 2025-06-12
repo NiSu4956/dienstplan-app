@@ -33,18 +33,18 @@ function EmployeeView() {
     <div className="employee-view">
       <div className="flex justify-between items-center mb-4">
         <div className="search-bar">
-          <input
-            type="text"
-            className="search-input"
+            <input
+              type="text"
+              className="search-input"
             placeholder="Mitarbeiter suchen..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button className="button" onClick={handleAddEmployee}>
+            Mitarbeiter hinzufügen
+          </button>
         </div>
-        <button className="button" onClick={handleAddEmployee}>
-          Mitarbeiter hinzufügen
-        </button>
-      </div>
 
       <div className="employee-list">
         {filteredEmployees.map(employee => (
@@ -58,24 +58,24 @@ function EmployeeView() {
                     <span key={index} className="qualification-tag">
                       {qual}
                     </span>
-                  ))}
-                </div>
+                      ))}
+                    </div>
               )}
             </div>
             <div className="employee-actions">
-              <button
+                      <button
                 className="button"
-                onClick={() => handleEditEmployee(employee)}
-              >
-                Bearbeiten
-              </button>
-              <button
+                        onClick={() => handleEditEmployee(employee)}
+                      >
+                        Bearbeiten
+                      </button>
+                      <button
                 className="button secondary"
-                onClick={() => handleDeleteEmployee(employee.id)}
-              >
-                Löschen
-              </button>
-            </div>
+                        onClick={() => handleDeleteEmployee(employee.id)}
+                      >
+                        Löschen
+                      </button>
+                    </div>
           </div>
         ))}
         {filteredEmployees.length === 0 && (
@@ -84,13 +84,13 @@ function EmployeeView() {
           </div>
         )}
       </div>
-
+      
       <Modal 
         isOpen={modalOpen} 
         onClose={() => setModalOpen(false)}
         title={currentEmployee ? "Mitarbeiter bearbeiten" : "Neuer Mitarbeiter"}
       >
-        <EmployeeForm
+        <EmployeeForm 
           employee={currentEmployee}
           onSave={handleSave}
           onCancel={() => setModalOpen(false)}
