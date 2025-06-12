@@ -1,0 +1,94 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RequestList sollte die Liste der Requests korrekt rendern 1`] = `
+<div>
+  <div
+    class="request-list"
+  >
+    <h4>
+      Urlaubsanträge
+    </h4>
+    <div
+      class="request-card"
+    >
+      <div
+        class="request-header"
+      >
+        <span
+          class="request-type vacation"
+        >
+          Urlaub
+        </span>
+        <span
+          class="request-status status-approved"
+        >
+          Genehmigt
+        </span>
+      </div>
+      <div
+        class="request-dates"
+      >
+        15.03.2024
+         - 
+        20.03.2024
+      </div>
+      <div
+        class="request-notes"
+      >
+        Urlaub in den Bergen
+      </div>
+      <div
+        class="admin-comment"
+      >
+        <strong>
+          Kommentar:
+        </strong>
+         
+        Genehmigt
+      </div>
+      <div
+        class="request-timestamp"
+      >
+        Eingereicht am: 
+        01.03.2024
+      </div>
+    </div>
+    <div
+      class="request-card"
+    >
+      <div
+        class="request-header"
+      >
+        <span
+          class="request-type sick"
+        >
+          Krankmeldung
+        </span>
+        <span
+          class="request-status status-pending"
+        >
+          Ausstehend
+        </span>
+      </div>
+      <div
+        class="request-dates"
+      >
+        16.03.2024
+         - 
+        17.03.2024
+      </div>
+      <div
+        class="request-notes"
+      >
+        Grippe
+      </div>
+      <div
+        class="request-timestamp"
+      >
+        Eingereicht am: 
+        16.03.2024
+      </div>
+    </div>
+  </div>
+</div>
+`;

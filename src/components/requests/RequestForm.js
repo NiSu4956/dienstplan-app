@@ -84,7 +84,7 @@ function RequestForm({ type, onSubmit, onCancel, currentUser, scheduleData, shif
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="form-control"
-          rows="3"
+          rows={3}
           placeholder={type === 'vacation' 
             ? REQUEST_FORM_TEXTS.placeholders.vacation 
             : REQUEST_FORM_TEXTS.placeholders.sickness}
@@ -109,10 +109,29 @@ RequestForm.propTypes = {
   type: PropTypes.string.isRequired,
   onSubmit: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,
-  currentUser: PropTypes.object.isRequired,
+  currentUser: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    role: PropTypes.string.isRequired
+  }).isRequired,
   scheduleData: PropTypes.object.isRequired,
-  shiftTypes: PropTypes.array.isRequired,
-  existingRequests: PropTypes.array.isRequired
+  shiftTypes: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    startTime: PropTypes.string.isRequired,
+    endTime: PropTypes.string.isRequired,
+    color: PropTypes.string.isRequired,
+    requiredQualifications: PropTypes.arrayOf(PropTypes.string)
+  })).isRequired,
+  existingRequests: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    type: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    startDate: PropTypes.string.isRequired,
+    endDate: PropTypes.string.isRequired,
+    notes: PropTypes.string,
+    employeeId: PropTypes.string.isRequired
+  })).isRequired
 };
 
 export default RequestForm; 

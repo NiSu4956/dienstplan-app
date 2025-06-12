@@ -4,11 +4,52 @@ import RequestForm from './requests/RequestForm';
 import RequestList from './requests/RequestList';
 import { formatDate } from '../utils/dateUtils';
 import { REQUEST_TYPES, REQUEST_STATUS_TEXT, REQUEST_STATUS_CLASS } from '../constants';
-import PropTypes from 'prop-types';
 
-function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, shiftTypes }) {
-  const [showModal, setShowModal] = useState(false);
-  const [formType, setFormType] = useState(REQUEST_TYPES.VACATION);
+type RequestStatus = keyof typeof REQUEST_STATUS_TEXT;
+
+interface User {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface Request {
+  id?: string;
+  type: typeof REQUEST_TYPES[keyof typeof REQUEST_TYPES];
+  status: RequestStatus;
+  employeeName?: string;
+  employeeId?: string;
+  startDate: string;
+  endDate: string;
+  notes?: string;
+  adminComment?: string;
+  submittedAt?: string;
+}
+
+interface ScheduleData {
+  [key: string]: any; // TODO: Define specific schedule data structure
+}
+
+interface ShiftType {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  color: string;
+  requiredQualifications?: string[];
+}
+
+interface EmployeePortalProps {
+  currentUser: User;
+  requests: Request[];
+  onSubmitRequest: (request: Request) => void;
+  scheduleData: ScheduleData;
+  shiftTypes: ShiftType[];
+}
+
+function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, shiftTypes }: EmployeePortalProps) {
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [formType, setFormType] = useState<typeof REQUEST_TYPES[keyof typeof REQUEST_TYPES]>(REQUEST_TYPES.VACATION);
 
   // Memoize filtered requests
   const { pendingRequests, processedRequests, existingRequests } = useMemo(() => {
@@ -20,9 +61,10 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
     };
   }, [requests, currentUser.name]);
 
-  const handleSubmitRequest = (formData) => {
+  const handleSubmitRequest = (formData: Request) => {
     onSubmitRequest({
       ...formData,
+      employeeName: currentUser.name,
       submittedAt: new Date().toISOString()
     });
     setShowModal(false);
@@ -83,34 +125,5 @@ function EmployeePortal({ currentUser, requests, onSubmitRequest, scheduleData, 
     </div>
   );
 }
-
-EmployeePortal.propTypes = {
-  currentUser: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    role: PropTypes.string.isRequired
-  }).isRequired,
-  requests: PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    type: PropTypes.string.isRequired,
-    status: PropTypes.string.isRequired,
-    employeeName: PropTypes.string.isRequired,
-    startDate: PropTypes.string.isRequired,
-    endDate: PropTypes.string.isRequired,
-    notes: PropTypes.string,
-    adminComment: PropTypes.string,
-    submittedAt: PropTypes.string.isRequired
-  })).isRequired,
-  onSubmitRequest: PropTypes.func.isRequired,
-  scheduleData: PropTypes.object.isRequired,
-  shiftTypes: PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    startTime: PropTypes.string.isRequired,
-    endTime: PropTypes.string.isRequired,
-    color: PropTypes.string.isRequired,
-    requiredQualifications: PropTypes.arrayOf(PropTypes.string)
-  })).isRequired
-};
 
 export default EmployeePortal; 

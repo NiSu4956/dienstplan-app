@@ -1,70 +1,117 @@
-# Getting Started with Create React App
+# Dienstplan-App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Eine moderne Webanwendung zur Verwaltung von Dienstplänen, Mitarbeitern und Urlaubsanträgen.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- 📅 Dienstplanverwaltung
+- 👥 Mitarbeiterverwaltung
+- 🏖️ Urlaubsanträge
+- 📊 Dashboard mit Übersichten
+- 🔐 Benutzerauthentifizierung
+- 📱 Responsive Design
 
-### `npm start`
+## Technologien
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- React 18
+- Tailwind CSS
+- Jest & React Testing Library
+- Context API für State Management
+- LocalStorage für Datenpersistenz
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Installation
 
-### `npm test`
+1. Repository klonen:
+```bash
+git clone [repository-url]
+cd dienstplan-app
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+2. Abhängigkeiten installieren:
+```bash
+npm install
+```
 
-### `npm run build`
+3. Entwicklungsserver starten:
+```bash
+npm start
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Die App ist dann unter [http://localhost:3000](http://localhost:3000) verfügbar.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Projektstruktur
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+src/
+├── components/     # React Komponenten
+├── contexts/      # Context Provider
+├── hooks/         # Custom Hooks
+├── utils/         # Hilfsfunktionen
+├── styles/        # CSS Styles
+├── tests/         # Test Dateien
+└── config/        # Konfigurationsdateien
+```
 
-### `npm run eject`
+## Entwicklung
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Tests ausführen
+```bash
+npm test
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Build erstellen
+```bash
+npm run build
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Komponenten
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### EmployeeView
+Verwaltet die Mitarbeiterliste mit folgenden Funktionen:
+- Mitarbeiter hinzufügen/bearbeiten/löschen
+- Suche nach Mitarbeitern
+- Filterung nach Qualifikationen
 
-## Learn More
+### RequestList
+Zeigt Urlaubsanträge an mit:
+- Status-Anzeige (Genehmigt/Ausstehend/Abgelehnt)
+- Detailansicht
+- Admin-Kommentare
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Dashboard
+Bietet Übersichten für:
+- Aktuelle Dienstpläne
+- Ausstehende Anträge
+- Mitarbeiterstatistiken
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## State Management
 
-### Code Splitting
+Die App verwendet die Context API für das State Management:
+- `AppContext`: Globaler State für Mitarbeiter, Anträge und Einstellungen
+- `useEmployeeManagement`: Custom Hook für Mitarbeiterverwaltung
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Styling
 
-### Analyzing the Bundle Size
+- Tailwind CSS für das Layout
+- Custom CSS für spezifische Komponenten
+- Responsive Design für mobile Geräte
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Tests
 
-### Making a Progressive Web App
+Die App verwendet Jest und React Testing Library für Tests:
+- Unit Tests für Utility-Funktionen
+- Integration Tests für Komponenten
+- Snapshot Tests für UI-Komponenten
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Deployment
 
-### Advanced Configuration
+1. Build erstellen:
+```bash
+npm run build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+2. Build-Ordner auf dem Server deployen
 
-### Deployment
+## Lizenz
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+MIT

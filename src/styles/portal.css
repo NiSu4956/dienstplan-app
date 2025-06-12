@@ -495,4 +495,42 @@
 .react-datepicker__day:hover {
   background-color: #e9ecef;
   border-radius: 4px;
+}
+
+/* Error Boundary Styles */
+.error-boundary {
+  background: #FEF2F2;
+  border: 1px solid #FEE2E2;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 20px;
+  text-align: center;
+}
+
+.error-boundary h2 {
+  color: #991B1B;
+  margin-bottom: 12px;
+}
+
+.error-boundary p {
+  color: #4B5563;
+  margin-bottom: 16px;
+}
+
+.error-boundary details {
+  background: white;
+  padding: 16px;
+  border-radius: 4px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.error-boundary summary {
+  cursor: pointer;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.error-boundary details[open] summary {
+  margin-bottom: 8px;
 } 
