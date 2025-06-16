@@ -6,6 +6,11 @@
     "node": "18.x",
     "npm": "11.4.2"
   },
+  "vercel": {
+    "buildCommand": "npm run build",
+    "outputDirectory": "build",
+    "framework": "create-react-app"
+  },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
     "@testing-library/jest-dom": "^5.17.0",
