@@ -1032,7 +1032,64 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
         </div>
       </div>
       
-      <div className="schedule-container">
+      {/* Mobile Calendar View */}
+      <div className="mobile-calendar">
+        <div className="month-header">
+          <div className="month-title">
+            {selectedWeek}
+          </div>
+          <div className="month-nav">
+            <button className="month-nav-button" onClick={goToPreviousWeek}>
+              ←
+            </button>
+            <button className="month-nav-button" onClick={goToNextWeek}>
+              →
+            </button>
+          </div>
+        </div>
+
+        <div className="calendar-container">
+          {days.map((day, index) => {
+            const date = getDateFromWeek(selectedWeek, index);
+            const dayShifts = timeSlots.flatMap(time => 
+              scheduleData[selectedWeek]?.[day]?.[time] || []
+            ).filter(shift => 
+              !selectedEmployee || shift.employeeId === selectedEmployee
+            );
+
+            return (
+              <div key={day} className="day-card">
+                <div className="day-header">
+                  <div className="day-date">{date}</div>
+                  <div className="day-weekday">{day}</div>
+                </div>
+                <div className="shift-list">
+                  {dayShifts.length > 0 ? (
+                    dayShifts.map((shift, shiftIndex) => (
+                      <div key={shiftIndex} className="shift-item">
+                        <div className="shift-time">
+                          {shift.startTime} - {shift.endTime}
+                        </div>
+                        <div className="shift-details">
+                          <span className="shift-type">{shift.type}</span>
+                          {shift.notes && (
+                            <div className="shift-notes">{shift.notes}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-shifts">Keine Schichten</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop Calendar View */}
+      <div className="desktop-calendar">
         <table className="schedule-table">
           <thead>
             <tr>
@@ -1084,7 +1141,28 @@ function WeekView({ employees, shiftTypes, scheduleData, setScheduleData, isEdit
           </tbody>
         </table>
       </div>
-      
+
+      {/* Bottom Navigation for Mobile */}
+      <div className="mobile-nav">
+        <a href="#" className="nav-item active">
+          <span className="nav-icon">📅</span>
+          Dienstplan
+        </a>
+        <a href="#" className="nav-item">
+          <span className="nav-icon">📝</span>
+          Anträge
+        </a>
+        <a href="#" className="nav-item">
+          <span className="nav-icon">👤</span>
+          Profil
+        </a>
+      </div>
+
+      {/* Floating Action Button */}
+      <button className="floating-action">
+        +
+      </button>
+
       {isEditable && (
         <Modal 
           isOpen={modalOpen} 
