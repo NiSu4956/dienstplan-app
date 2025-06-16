@@ -2,22 +2,27 @@
   "name": "dienstplan-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
-    "@testing-library/dom": "^9.3.4",
-    "@testing-library/user-event": "^14.5.2",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
     "axios": "^1.6.7",
-    "date-fns": "^3.3.1",
+    "date-fns": "^2.30.0",
     "html2pdf.js": "^0.10.3",
-    "jspdf": "^3.0.1",
+    "jspdf": "^2.5.1",
     "react": "^18.2.0",
-    "react-datepicker": "^6.1.0",
+    "react-datepicker": "^4.25.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.1",
     "react-scripts": "5.0.1",
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^1.8.11",
-    "web-vitals": "^3.5.2"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -45,20 +50,17 @@
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^24.0.1",
-    "@types/react": "^19.1.8",
-    "@types/react-datepicker": "^6.2.0",
-    "@types/react-dom": "^19.1.6",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.80",
+    "@types/react": "^18.2.55",
+    "@types/react-datepicker": "^4.19.5",
+    "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.17",
-    "jest": "^30.0.0",
     "postcss": "^8.4.35",
     "resolve-url-loader": "^5.0.0",
     "svgo": "^3.2.0",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.8.3"
+    "typescript": "^4.9.5"
   },
   "resolutions": {
     "nth-check": "^2.0.1",
